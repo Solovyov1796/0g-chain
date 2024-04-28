@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/0glabs/0g-chain/crypto/vrf"
 	"github.com/0glabs/0g-chain/x/council/v1/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -45,9 +44,6 @@ func NewRegisterCmd() *cobra.Command {
 		Short: "Register a voter",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// bypass the restriction of set keyring options
-			ctx := client.GetClientContextFromCmd(cmd).WithKeyringOptions(vrf.VrfOption())
-			client.SetCmdClientContext(cmd, ctx)
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
