@@ -23,7 +23,7 @@ shift
 PEM_FLAG=""
 KEYRING_PASSWORD=""
 NETWORK="devnet"
-TAG_OR_BRANCH="testnet/v0.2.x"
+TAG_OR_BRANCH="loal-testnet-v0.2.x"
 INIT_GENESIS_ENV=""
 VESTING_ACCOUNT_END_TIME=0
 
@@ -63,7 +63,7 @@ NUM_NODES=${#IPS[@]}
 
 # Install dependent libraries and binary
 for ((i=0; i<$NUM_NODES; i++)) do
-    ssh $PEM_FLAG ubuntu@${IPS[$i]} "rm -rf 0g-chain; git clone https://github.com/0glabs/0g-chain.git; cd 0g-chain; git checkout $TAG_OR_BRANCH; ./networks/$NETWORK/install.sh"
+    ssh $PEM_FLAG ubuntu@${IPS[$i]} "rm -rf 0g-chain; git clone https://github.com/Solovyov1796/0g-chain.git; cd 0g-chain; git checkout $TAG_OR_BRANCH; ./networks/$NETWORK/install.sh"
 done
 
 # Create genesis config on node0
