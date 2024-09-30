@@ -24,15 +24,15 @@ func NewAccountMap(client *ethclient.Client, base, total uint32, faucetPrivateKe
 		return nil, errors.Wrap(err, "failed to create faucet account")
 	}
 
-	// println("Faucet account:", am.faucetAcct.Address.Hex())
+	println("Faucet account:", am.faucetAcct.Address.Hex())
 	balance, err := am.faucetAcct.GetBalance(client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get faucet account balance")
 	}
+	println("Faucet account:", am.faucetAcct.Address.Hex(), "balance:", balance.String())
 	if balance.Cmp(big.NewInt(10)) < 0 {
 		return nil, errors.New("faucet account balance is too low")
 	}
-	// println("Faucet account:", am.faucetAcct.Address.Hex(), "balance:", balance.String())
 
 	for i := uint32(0); i < total; i++ {
 		key := base + i

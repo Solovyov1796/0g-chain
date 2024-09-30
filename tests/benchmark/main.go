@@ -20,11 +20,16 @@ import (
 	"github.com/evmos/ethermint/crypto/ethsecp256k1"
 )
 
+var (
+	nodeUrl     string
+	sendTxLimit int
+)
+
 var senders []*Sender
 
 func main() {
-	rpcUrl, _ := getParameters()
-
+	nodeUrl, sendTxLimit = getParameters()
+	println("nodeUrl:", nodeUrl)
 	faucetPk, err := getAccountPrivateKey(evmFaucetMnemonic)
 	if err != nil {
 		log.Fatalf("Failed to get the faucet private key: %v", err)
@@ -33,7 +38,7 @@ func main() {
 
 	senders = make([]*Sender, 0, senderCount)
 	for i := range senderCount {
-		client, err := ethclient.Dial(rpcUrl)
+		client, err := ethclient.Dial(nodeUrl)
 		if err != nil {
 			log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 		}
@@ -69,11 +74,11 @@ func main() {
 		time.Sleep(10 * time.Second)
 	}
 
-	// time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	println("ready!!!", time.Now().Format("2006-01-02 15:04:05"))
 
-	client, err := ethclient.Dial(rpcUrl)
+	client, err := ethclient.Dial(nodeUrl)
 	if err != nil {
 		log.Fatalf("Failed to connect to the Ethereum client: %v", err)
 	}
@@ -88,7 +93,7 @@ func main() {
 		swg.Add()
 		go func(s *Sender) {
 			defer swg.Done()
-			s.Send(txCount)
+			s.Send(sendTxLimit)
 		}(senders[i])
 	}
 
@@ -132,7 +137,7 @@ func main() {
 
 func getParameters() (string, int) {
 	// handle command line flags
-	rpcUrl := flag.String("rpc-url", "http://127.0.0.1:8545", "RPC url of the chain")
+	rpcUrl := flag.String("rpc-url", "http://18.166.164.232:8545", "RPC url of the chain")
 	count := flag.Int("count", 10000, "The number of transactions to be sent")
 	flag.Parse()
 

@@ -8,10 +8,12 @@ import (
 	"context"
 	"log"
 	"math/big"
+	"sync"
 
 	"github.com/0glabs/0g-chain/tests/benchmark/utils"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/pkg/errors"
 )
 
 type transferGeneratorImlp struct {
@@ -22,6 +24,7 @@ type transferGeneratorImlp struct {
 	taskPool   chan *task
 	txPool     chan *types.Transaction
 	poolSize   uint32
+	state      sync.Once
 }
 
 func NewTransferGenerator(index, numAccounts uint32, faucetPrivateKey string, ethClient *ethclient.Client) (Generator, error) {
@@ -52,11 +55,21 @@ func (g *transferGeneratorImlp) WarmUp() error {
 	// make transfer from faucet account to other accounts
 	taskList := make([]*task, 0, g.accountMap.total)
 	for i := 0; i < int(g.accountMap.total); i++ {
-		taskList = append(taskList, &task{
-			fromAccount: g.accountMap.faucetAcct,
-			toAccout:    g.accountMap.GetAccount(uint32(i)),
-			value:       utils.ToBigInt(initialTransferVal),
-		})
+		targetAccount := g.accountMap.GetAccount(uint32(i))
+
+		balance, err := targetAccount.GetBalance(g.client)
+		if err != nil {
+			return errors.Wrap(err, "failed to get account balance")
+		}
+		if balance.Cmp(big.NewInt(defaultTransferVal)) < 0 {
+			taskList = append(taskList, &task{
+				fromAccount: g.accountMap.faucetAcct,
+				toAccout:    targetAccount,
+				value:       utils.ToBigInt(initialTransferVal),
+			})
+		} else {
+			println("account:", targetAccount.Address.Hex(), "balance:", balance.String())
+		}
 	}
 
 	for i := range taskList {
@@ -93,47 +106,49 @@ func (g *transferGeneratorImlp) generateTransaction(t *task) (*types.Transaction
 }
 
 func (g *transferGeneratorImlp) GenerateTransfer() <-chan *types.Transaction {
-	go func() {
-		for {
-			acctIdxList := make([]uint32, 0, g.accountMap.total)
+	g.state.Do(func() {
+		go func() {
+			for {
+				acctIdxList := make([]uint32, 0, g.accountMap.total)
 
-			for i := 0; i < int(g.accountMap.total); i++ {
-				acctIdxList = append(acctIdxList, uint32(i))
-			}
+				for i := 0; i < int(g.accountMap.total); i++ {
+					acctIdxList = append(acctIdxList, uint32(i))
+				}
 
-			acctIdxList = utils.Shuffle(acctIdxList)
+				acctIdxList = utils.Shuffle(acctIdxList)
 
-			usedFrom := make(map[uint32]bool)
-			usedTo := make(map[uint32]bool)
+				usedFrom := make(map[uint32]bool)
+				usedTo := make(map[uint32]bool)
 
-			for i := 0; i < len(acctIdxList); i++ {
-				for j := 0; j < len(acctIdxList); j++ {
-					if acctIdxList[i] != acctIdxList[j] && !usedFrom[acctIdxList[i]] && !usedTo[acctIdxList[j]] {
-						usedFrom[acctIdxList[i]] = true
-						usedTo[acctIdxList[j]] = true
+				for i := 0; i < len(acctIdxList); i++ {
+					for j := 0; j < len(acctIdxList); j++ {
+						if acctIdxList[i] != acctIdxList[j] && !usedFrom[acctIdxList[i]] && !usedTo[acctIdxList[j]] {
+							usedFrom[acctIdxList[i]] = true
+							usedTo[acctIdxList[j]] = true
 
-						g.taskPool <- &task{
-							fromAccount: g.accountMap.GetAccount(acctIdxList[i]),
-							toAccout:    g.accountMap.GetAccount(acctIdxList[j]),
-							value:       utils.ToBigInt(defaultTransferVal),
+							g.taskPool <- &task{
+								fromAccount: g.accountMap.GetAccount(acctIdxList[i]),
+								toAccout:    g.accountMap.GetAccount(acctIdxList[j]),
+								value:       utils.ToBigInt(defaultTransferVal),
+							}
+							break
 						}
-						break
 					}
 				}
 			}
-		}
-	}()
+		}()
 
-	go func() {
-		for {
-			t := <-g.taskPool
-			tx, err := g.generateTransaction(t)
-			if err != nil {
-				log.Fatal("generate transaction error: ", err.Error())
+		go func() {
+			for {
+				t := <-g.taskPool
+				tx, err := g.generateTransaction(t)
+				if err != nil {
+					log.Fatal("generate transaction error: ", err.Error())
+				}
+				g.txPool <- tx
 			}
-			g.txPool <- tx
-		}
-	}()
+		}()
+	})
 
 	return g.txPool
 }

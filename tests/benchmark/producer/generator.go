@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	defaultTransferGasLimit      = uint64(22000)
+	defaultTransferGasLimit      = uint64(21000)
 	defaultErc20TransferGasLimit = uint64(3000000)
-	initialTransferVal           = 1e16
-	defaultTransferVal           = 1e6
+	initialTransferVal           = 50 * 1e18 // 50 a0gi
+	defaultTransferVal           = 1e10      // 0.01 ua0gi
 )
 
 type task struct {

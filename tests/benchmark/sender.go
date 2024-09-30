@@ -26,7 +26,7 @@ func (s *Sender) Send(txCount int) {
 		} else {
 			println("[", s.Index, "] Sent transaction", t.Hash().String())
 		}
-		_ = t
+
 		cnt++
 		if cnt == txCount {
 			break
