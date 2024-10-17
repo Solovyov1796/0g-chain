@@ -137,7 +137,7 @@ func main() {
 
 func getParameters() (string, int) {
 	// handle command line flags
-	rpcUrl := flag.String("rpc-url", "http://18.166.164.232:8545", "RPC url of the chain")
+	rpcUrl := flag.String("rpc-url", "http://8.211.37.141:8545", "RPC url of the chain")
 	count := flag.Int("count", 10000, "The number of transactions to be sent")
 	flag.Parse()
 

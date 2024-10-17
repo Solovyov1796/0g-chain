@@ -1,6 +1,7 @@
 package main
 
 const (
+	senderSpeed       = 20
 	accountCount      = 100
 	senderCount       = 4
 	workloadPreBatch  = accountCount
