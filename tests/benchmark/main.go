@@ -93,7 +93,7 @@ func main() {
 		swg.Add()
 		go func(s *Sender) {
 			defer swg.Done()
-			s.Send(sendTxLimit)
+			s.Send(txCount)
 		}(senders[i])
 	}
 

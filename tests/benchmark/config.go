@@ -1,9 +1,9 @@
 package main
 
 const (
-	senderSpeed       = 20
+	senderSpeed       = 50
 	accountCount      = 100
-	senderCount       = 4
+	senderCount       = 1
 	workloadPreBatch  = accountCount
 	txCount           = 10000
 	basePrefix        = 9370

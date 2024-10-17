@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/0glabs/0g-chain/tests/benchmark/producer"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -21,9 +20,9 @@ type Sender struct {
 func (s *Sender) Send(txCount int) {
 	ctx := context.Background()
 	cnt := 0
-	limiter := rate.NewLimiter(rate.Every(time.Second/senderSpeed), 1)
+	limiter := rate.NewLimiter(senderSpeed, senderSpeed)
 	for t := range s.SendCh {
-		limiter.Wait(ctx)
+		limiter.Wait(context.Background())
 		err := s.Client.SendTransaction(ctx, t)
 		if err != nil {
 			log.Fatal("[", s.Index, "] Failed to send transactions ", t.Hash().String(), " error: ", err.Error())
