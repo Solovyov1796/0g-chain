@@ -7,6 +7,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.47.10
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/evmos/ethermint v0.0.0-00010101000000-000000000000
+	github.com/gorilla/websocket v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.4.0
 	golang.org/x/crypto v0.24.0
@@ -30,7 +31,6 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.4.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/linxGnu/grocksdb v1.9.3 // indirect
 	github.com/petermattis/goid v0.0.0-20230317030725-371a4b8eda08 // indirect

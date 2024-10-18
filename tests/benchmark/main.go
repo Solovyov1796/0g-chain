@@ -30,6 +30,20 @@ var senders []*Sender
 func main() {
 	nodeUrl, sendTxLimit = getParameters()
 	println("nodeUrl:", nodeUrl)
+
+	limiter := NewRateLimiter(100)
+
+	ethListener := NewEthereumListener("ws://8.211.37.141:8546", limiter)
+	err := ethListener.Connect()
+	if err != nil {
+		log.Fatalf("Failed to connect to WebSocket: %v", err)
+	}
+
+	err = ethListener.SubscribeNewHeads()
+	if err != nil {
+		log.Fatalf("Failed to subscribe to new heads: %v", err)
+	}
+
 	faucetPk, err := getAccountPrivateKey(evmFaucetMnemonic)
 	if err != nil {
 		log.Fatalf("Failed to get the faucet private key: %v", err)
