@@ -36,7 +36,7 @@ $BINARY init validator --chain-id $chainID
 sed -in-place='' 's/enable = false/enable = true/g' $DATA/config/app.toml
 
 # Set evm tracer to json
-sed -in-place='' 's/tracer = ""/tracer = "json"/g' $DATA/config/app.toml
+sed -in-place='' 's/tracer = ""/tracer = ""/g' $DATA/config/app.toml
 
 # Disable full error trace
 sed -in-place='' '/iavl-cache-size/a\
