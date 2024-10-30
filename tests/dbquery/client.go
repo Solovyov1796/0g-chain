@@ -2,6 +2,10 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log"
+	"path"
 	"strings"
 
 	dbm "github.com/cometbft/cometbft-db"
@@ -11,6 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const (
@@ -36,6 +42,7 @@ func InitDB(backend dbm.BackendType, dir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to create blockstore db")
 	}
+
 	stateDB, err = dbm.NewDB("state", backend, dir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create state db")
@@ -44,6 +51,8 @@ func InitDB(backend dbm.BackendType, dir string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to create tx_index db")
 	}
+
+	printLastTx(dir)
 	return nil
 }
 
@@ -109,4 +118,49 @@ func loadTxFromIndex(hashHexStr string) (*abci.TxResult, error) {
 	println("abci.TxResult: ", jsonStr)
 
 	return txResult, nil
+}
+
+func printLastTx(dir string) {
+	// 打开 blockstore 数据库
+	db, err := leveldb.OpenFile(path.Join(dir, "blockstore.db"), nil)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// 遍历区块数据库查找最后一个区块
+	iter := db.NewIterator(nil, nil)
+	var lastBlockKey, lastBlockValue []byte
+	for iter.Next() {
+		lastBlockKey = iter.Key()
+		lastBlockValue = iter.Value()
+	}
+	iter.Release()
+
+	// 检查迭代器错误
+	if err := iter.Error(); err != nil {
+		log.Fatalf("Iterator error: %v", err)
+	}
+
+	// 假设交易数据存储在最后一个区块数据中，解析并输出
+	var blockData map[string]interface{}
+	if err := json.Unmarshal(lastBlockValue, &blockData); err != nil {
+		log.Fatalf("Failed to unmarshal block data: %v", err)
+	}
+
+	// 输出区块信息，获取交易数据
+	fmt.Printf("Last block key: %s\n", lastBlockKey)
+	fmt.Printf("Last block data: %+v\n", blockData)
+
+	// 获取并解析交易数据
+	// 假设交易数据位于 blockData["txs"]
+	txs, ok := blockData["txs"].([]interface{})
+	if !ok {
+		log.Fatalf("Transaction data not found in last block.")
+	}
+	lastTx := txs[len(txs)-1]
+
+	// 输出最后一个交易
+	fmt.Printf("Last transaction: %+v\n", lastTx)
+
 }
