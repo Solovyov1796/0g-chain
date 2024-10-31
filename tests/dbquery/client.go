@@ -56,7 +56,7 @@ func InitDB(backend dbm.BackendType, dir string) error {
 		return errors.Wrapf(err, "failed to create tx_index db")
 	}
 
-	iterateBlocks(1600000)
+	iterateBlocks(1)
 	return nil
 }
 
@@ -284,13 +284,17 @@ func printBlockTxsAsJSON(block *cometbfttypes.Block) {
 	var txsJSON []string
 
 	for _, tx := range block.Data.Txs {
-		if string(tx) == issueTX {
-			txJSON, err := json.Marshal(tx)
-			if err != nil {
-				log.Printf("Failed to marshal tx to JSON: %v", err)
-				continue
-			}
-			txsJSON = append(txsJSON, string(txJSON))
+		txJSON, err := json.Marshal(tx)
+		if err != nil {
+			log.Printf("Failed to marshal tx to JSON: %v", err)
+			continue
+		}
+		s := string(txJSON)
+		s = strings.TrimPrefix(s, "\"")
+		s = strings.TrimSuffix(s, "\"")
+
+		if strings.HasPrefix(s, issueTX) {
+			txsJSON = append(txsJSON, s)
 		}
 	}
 
