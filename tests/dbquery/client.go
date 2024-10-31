@@ -219,13 +219,7 @@ func iterateBlocks(start int64) {
 			break
 		}
 
-		blockJSON, err := json.MarshalIndent(block, "", "  ")
-		if err != nil {
-			log.Fatalf("Failed to marshal block to JSON: %v", err)
-		}
-
-		fmt.Println(string(blockJSON))
-
+		printBlockTxsAsJSON(block)
 		h++
 	}
 }
@@ -280,4 +274,29 @@ func printLastTx(dir string) {
 	// 输出最后一个交易
 	fmt.Printf("Last transaction: %+v\n", lastTx)
 
+}
+
+func printBlockTxsAsJSON(block *cometbfttypes.Block) {
+	var txsJSON []string
+
+	for _, tx := range block.Data.Txs {
+		txJSON, err := json.Marshal(tx)
+		if err != nil {
+			log.Printf("Failed to marshal tx to JSON: %v", err)
+			continue
+		}
+		txsJSON = append(txsJSON, string(txJSON))
+	}
+
+	blockData := map[string]interface{}{
+		"height": block.Header.Height,
+		"txs":    txsJSON,
+	}
+
+	blockJSON, err := json.MarshalIndent(blockData, "", "  ")
+	if err != nil {
+		log.Fatalf("Failed to marshal block data to JSON: %v", err)
+	}
+
+	fmt.Println(string(blockJSON))
 }
