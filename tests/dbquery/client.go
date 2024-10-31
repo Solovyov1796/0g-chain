@@ -276,16 +276,22 @@ func printLastTx(dir string) {
 
 }
 
+const (
+	issueTX = "CvMECr8ECh8vZXRoZXJtaW50LmV2bS52MS5Nc2dFdGhlcmV1bVR4EpsECtQDChovZXRoZXJtaW50LmV2bS52MS5MZWdhY3lUeBK1AxIBMBjAjbcBKgEwMt8CYIBgQFI0gBVgDldfgP1bUGEBQ4BhABxfOV/z/mCAYEBSNIAVYQAPV1+A/VtQYAQ2EGEANFdfNWDgHIBjLmTOwRRhADhXgGNgVzYdFGEAVldbX4D9W2EAQGEAclZbYEBRYQBNkZBhAJtWW2BAUYCRA5DzW2EAcGAEgDYDgQGQYQBrkZBhAOJWW2EAelZbAFtfgFSQUJBWW4BfgZBVUFBWW1+BkFCRkFBWW2EAlYFhAINWW4JSUFBWW19gIIIBkFBhAK5fgwGEYQCMVluSkVBQVltfgP1bYQDBgWEAg1ZbgRRhAMtXX4D9W1BWW1+BNZBQYQDcgWEAuFZbkpFQUFZbX2AggoQDEhVhAPdXYQD2YQC0VltbX2EBBISChQFhAM5WW5FQUJKRUFBW/qJkaXBmc1giEiCaDdNTNq/x6z7rEdt2qmChQnoSwbkvlF6oyNHfozfPImRzb2xjQwAIGgAzOgKB00Igzh3LSw7YUoB+zGnHEITw/h5ktWnJBO7dzY1r3kzOTHNKIGV3mUN9HBNFS5+cFwxBQSNTVOBtRcpuNZX3AP2qZRcfGkIweDBhZjczZDU3NjA2OWE1ZTNiMTMzZDUzMTQ0ZTZjOGZhZDQ1ODc3ZWU4ZjA1MThkOWI1YTFjMzQwNWI2YTFlODL6Py4KLC9ldGhlcm1pbnQuZXZtLnYxLkV4dGVuc2lvbk9wdGlvbnNFdGhlcmV1bVR4EgcSBRDAjbcB"
+)
+
 func printBlockTxsAsJSON(block *cometbfttypes.Block) {
 	var txsJSON []string
 
 	for _, tx := range block.Data.Txs {
-		txJSON, err := json.Marshal(tx)
-		if err != nil {
-			log.Printf("Failed to marshal tx to JSON: %v", err)
-			continue
+		if string(tx) == issueTX {
+			txJSON, err := json.Marshal(tx)
+			if err != nil {
+				log.Printf("Failed to marshal tx to JSON: %v", err)
+				continue
+			}
+			txsJSON = append(txsJSON, string(txJSON))
 		}
-		txsJSON = append(txsJSON, string(txJSON))
 	}
 
 	blockData := map[string]interface{}{
