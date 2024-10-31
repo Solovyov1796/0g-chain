@@ -10,12 +10,16 @@ import (
 
 	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	cmtstore "github.com/cometbft/cometbft/proto/tendermint/store"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	cometbfttypes "github.com/cometbft/cometbft/types"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -52,7 +56,7 @@ func InitDB(backend dbm.BackendType, dir string) error {
 		return errors.Wrapf(err, "failed to create tx_index db")
 	}
 
-	printLastTx(dir)
+	iterateBlocks(1600000)
 	return nil
 }
 
@@ -67,13 +71,13 @@ func GetTx(hash string) (sdk.Tx, error) {
 			return nil, status.Errorf(codes.NotFound, "tx not found: %s", hash)
 		}
 
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get tx")
 	}
 
 	// input tx byte slice
 	tx, err := encodingCfg.TxConfig.TxDecoder()(txByteSlice)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to decode tx")
 	}
 
 	return tx, nil
@@ -120,6 +124,112 @@ func loadTxFromIndex(hashHexStr string) (*abci.TxResult, error) {
 	return txResult, nil
 }
 
+func calcBlockMetaKey(height int64) []byte {
+	return []byte(fmt.Sprintf("H:%v", height))
+}
+
+func calcBlockPartKey(height int64, partIndex int) []byte {
+	return []byte(fmt.Sprintf("P:%v:%v", height, partIndex))
+}
+
+func loadBlockMeta(height int64) *cometbfttypes.BlockMeta {
+	pbbm := new(cmtproto.BlockMeta)
+	bz, err := blockDB.Get(calcBlockMetaKey(height))
+	if err != nil {
+		panic(err)
+	}
+
+	if len(bz) == 0 {
+		return nil
+	}
+
+	err = proto.Unmarshal(bz, pbbm)
+	if err != nil {
+		panic(fmt.Errorf("unmarshal to cmtproto.BlockMeta: %w", err))
+	}
+
+	blockMeta, err := types.BlockMetaFromTrustedProto(pbbm)
+	if err != nil {
+		panic(fmt.Errorf("error from proto blockMeta: %w", err))
+	}
+
+	return blockMeta
+}
+
+func loadBlockPart(height int64, index int) *types.Part {
+	pbpart := new(cmtproto.Part)
+
+	bz, err := blockDB.Get(calcBlockPartKey(height, index))
+	if err != nil {
+		panic(err)
+	}
+	if len(bz) == 0 {
+		return nil
+	}
+
+	err = proto.Unmarshal(bz, pbpart)
+	if err != nil {
+		panic(fmt.Errorf("unmarshal to cmtproto.Part failed: %w", err))
+	}
+	part, err := types.PartFromProto(pbpart)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading block part: %v", err))
+	}
+
+	return part
+}
+
+func loadBlock(height int64) *cometbfttypes.Block {
+	blockMeta := loadBlockMeta(height)
+	if blockMeta == nil {
+		return nil
+	}
+	pbb := new(cmtproto.Block)
+	buf := []byte{}
+	for i := 0; i < int(blockMeta.BlockID.PartSetHeader.Total); i++ {
+		part := loadBlockPart(height, i)
+		// If the part is missing (e.g. since it has been deleted after we
+		// loaded the block meta) we consider the whole block to be missing.
+		if part == nil {
+			return nil
+		}
+		buf = append(buf, part.Bytes...)
+	}
+	err := proto.Unmarshal(buf, pbb)
+	if err != nil {
+		// NOTE: The existence of meta should imply the existence of the
+		// block. So, make sure meta is only saved after blocks are saved.
+		panic(fmt.Sprintf("Error reading block: %v", err))
+	}
+
+	block, err := types.BlockFromProto(pbb)
+	if err != nil {
+		panic(fmt.Errorf("error from proto block: %w", err))
+	}
+
+	return block
+}
+
+func iterateBlocks(start int64) {
+	h := start
+	for {
+		block := loadBlock(h)
+		if block == nil {
+			println("last block height: ", h)
+			break
+		}
+
+		blockJSON, err := json.MarshalIndent(block, "", "  ")
+		if err != nil {
+			log.Fatalf("Failed to marshal block to JSON: %v", err)
+		}
+
+		fmt.Println(string(blockJSON))
+
+		h++
+	}
+}
+
 func printLastTx(dir string) {
 	// 打开 blockstore 数据库
 	db, err := leveldb.OpenFile(path.Join(dir, "blockstore.db"), nil)
@@ -134,6 +244,13 @@ func printLastTx(dir string) {
 	for iter.Next() {
 		lastBlockKey = iter.Key()
 		lastBlockValue = iter.Value()
+
+		var bsj cmtstore.BlockStoreState
+		if err := json.Unmarshal(lastBlockValue, &bsj); err != nil {
+			log.Printf("Failed to unmarshal block data: %v", err)
+		} else {
+			fmt.Printf("Block Height: %d\n", bsj.Height)
+		}
 	}
 	iter.Release()
 
