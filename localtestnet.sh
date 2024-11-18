@@ -42,6 +42,9 @@ sed -in-place='' 's/tracer = ""/tracer = ""/g' $DATA/config/app.toml
 sed -in-place='' '/iavl-cache-size/a\
 trace = false' $DATA/config/app.toml
 
+# Set min gas prices 
+sed -in-place='' 's/minimum-gas-prices = "0ua0gi"/minimum-gas-prices = "0.01ua0gi,100000neuron"/g' $DATA/config/app.toml
+
 # Set client chain id
 sed -in-place='' 's/chain-id = ""/chain-id = "zgchain_8888-1"/g' $DATA/config/client.toml
 
