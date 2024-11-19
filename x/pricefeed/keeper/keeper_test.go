@@ -12,6 +12,8 @@ import (
 	tmprototypes "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/0glabs/0g-chain/app"
+	"github.com/0glabs/0g-chain/x/pricefeed/keeper"
+	"github.com/0glabs/0g-chain/x/pricefeed/testutil"
 	"github.com/0glabs/0g-chain/x/pricefeed/types"
 )
 

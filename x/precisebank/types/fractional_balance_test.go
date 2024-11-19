@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/0glabs/0g-chain/app"
+	"github.com/0glabs/0g-chain/chaincfg"
 	"github.com/0glabs/0g-chain/x/precisebank/types"
 	"github.com/stretchr/testify/require"
 )
@@ -74,7 +74,7 @@ func TestNewFractionalBalance(t *testing.T) {
 }
 
 func TestFractionalBalance_Validate(t *testing.T) {
-	app.SetSDKConfig()
+	chaincfg.SetSDKConfig()
 
 	tests := []struct {
 		name        string
