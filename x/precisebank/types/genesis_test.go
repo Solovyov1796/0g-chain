@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
-	"github.com/0glabs/0g-chain/app"
+	"github.com/0glabs/0g-chain/chaincfg"
 	"github.com/0glabs/0g-chain/x/precisebank/testutil"
 	"github.com/0glabs/0g-chain/x/precisebank/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestGenesisStateValidate_Basic(t *testing.T) {
-	app.SetSDKConfig()
+	chaincfg.SetSDKConfig()
 
 	testCases := []struct {
 		name         string
