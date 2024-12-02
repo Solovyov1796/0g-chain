@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/0glabs/0g-chain/tests/benchmark/utils"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -78,7 +77,7 @@ func (s *Signer) Run(requests <-chan *TxSignRequest) <-chan *TxSignResponse {
 					Err:     err,
 				}
 			} else {
-				println(s.signerAddress.Hex(), " -> [", req.Nonce, "]tx signed: ", signedTx.Hash().String(), utils.DumpTx(req.Tx), req.Data)
+				// println(s.signerAddress.Hex(), " -> [", req.Nonce, "]tx signed: ", signedTx.Hash().String(), utils.DumpTx(req.Tx), req.Data)
 				responses <- &TxSignResponse{
 					Request:  req,
 					SignedTx: signedTx,

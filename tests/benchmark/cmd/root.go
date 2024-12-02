@@ -123,12 +123,9 @@ func doing(rpcUrl string, userIncrementPerDay, speed int) {
 
 	thisSender.SendCh = generator.GenerateTransfer()
 	c := cron.New()
-	// c.AddFunc("0 0 0 * *", func() {
-	// 	acctMgr.Increament()
-	// })
-
-	c.AddFunc("* */2 * * *", func() {
+	c.AddFunc("0 0 0 * *", func() {
 		acctMgr.Increament()
+		println("increased, user count:", acctMgr.GetAccountCount())
 	})
 
 	defer func() {
