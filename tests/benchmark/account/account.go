@@ -1,4 +1,4 @@
-package producer
+package account
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"math/big"
 	"strings"
+	"sync/atomic"
 
 	"github.com/0glabs/0g-chain/tests/benchmark/utils"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -16,15 +17,15 @@ import (
 )
 
 type Account struct {
-	Nonce      uint64
+	Nonce      atomic.Uint64
 	ChainId    *big.Int
 	Address    common.Address
 	PrivateKey *ecdsa.PrivateKey
 	IsFaucet   bool
-
-	Signer  *Signer
-	ReqChan chan<- *TxSignRequest
-	ResChan <-chan *TxSignResponse
+	hasBalance bool
+	Signer     *Signer
+	ReqChan    chan<- *TxSignRequest
+	ResChan    <-chan *TxSignResponse
 }
 
 func NewAccount(index int64, client *ethclient.Client, chainId *big.Int) (*Account, error) {
@@ -48,15 +49,16 @@ func NewAccount(index int64, client *ethclient.Client, chainId *big.Int) (*Accou
 	reqChan := make(chan *TxSignRequest)
 	resChan := signer.Run(reqChan)
 
-	return &Account{
-		Nonce:      nonce,
+	acct := &Account{
 		Address:    addr,
 		PrivateKey: ecdsaPrivKey,
 		ChainId:    chainId,
 		Signer:     signer,
 		ReqChan:    reqChan,
 		ResChan:    resChan,
-	}, nil
+	}
+	acct.Nonce.Store(nonce)
+	return acct, nil
 }
 
 func CreateFaucetAccount(client *ethclient.Client, privateKey string, chainId *big.Int) (*Account, error) {
@@ -78,22 +80,21 @@ func CreateFaucetAccount(client *ethclient.Client, privateKey string, chainId *b
 	reqChan := make(chan *TxSignRequest)
 	resChan := signer.Run(reqChan)
 
-	return &Account{
+	acct := &Account{
 		IsFaucet:   true,
-		Nonce:      nonce,
 		Address:    addr,
 		PrivateKey: pk,
 		ChainId:    chainId,
 		Signer:     signer,
 		ReqChan:    reqChan,
 		ResChan:    resChan,
-	}, nil
+	}
+	acct.Nonce.Store(nonce)
+	return acct, nil
 }
 
 func (a *Account) GetAndIncrementNonce() uint64 {
-	now := a.Nonce
-	a.Nonce += 1
-	return now
+	return a.Nonce.Add(1) - 1
 }
 
 func (a *Account) GetBalance(client *ethclient.Client) (*big.Int, error) {
@@ -102,4 +103,12 @@ func (a *Account) GetBalance(client *ethclient.Client) (*big.Int, error) {
 		return nil, errors.Wrap(err, "failed to get balance")
 	}
 	return b, nil
+}
+
+func (a *Account) IsAvailable() bool {
+	return a.hasBalance
+}
+
+func (a *Account) MarkAsAvailable() {
+	a.hasBalance = true
 }

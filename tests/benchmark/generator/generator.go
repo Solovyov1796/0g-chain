@@ -1,8 +1,9 @@
-package producer
+package generator
 
 import (
 	"math/big"
 
+	"github.com/0glabs/0g-chain/tests/benchmark/account"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -14,14 +15,15 @@ const (
 )
 
 type task struct {
-	fromAccount *Account
-	toAccout    *Account
+	fromAccount *account.Account
+	toAccout    *account.Account
 	value       *big.Int
 }
 
 type Generator interface {
 	WarmUp() error
 	GenerateTransfer() <-chan *types.Transaction
+	TearDown()
 }
 
 type DeployedErc20 struct {

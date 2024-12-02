@@ -1,4 +1,4 @@
-package producer
+package account
 
 import (
 	"crypto/ecdsa"
