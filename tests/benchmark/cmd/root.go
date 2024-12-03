@@ -108,7 +108,7 @@ func doing(rpcUrl string, userIncrementPerDay, speed int) {
 	if err != nil {
 		log.Fatalf("Failed to create the account manager: %v", err.Error())
 	}
-	generator, err := generator.NewTransferGenerator(0, 500, faucetPkStr, client, acctMgr)
+	generator, err := generator.NewTransferGenerator(500, faucetPkStr, client, acctMgr)
 	if err != nil {
 		log.Fatalf("Failed to create the generator: %v", err.Error())
 	}

@@ -30,14 +30,11 @@ type transferGeneratorImlp struct {
 	cancelFunc context.CancelFunc
 }
 
-func NewTransferGenerator(index, poolSize uint32, faucetPrivateKey string, ethClient *ethclient.Client, accountMgr account.AccountManager) (Generator, error) {
+func NewTransferGenerator(poolSize uint32, faucetPrivateKey string, ethClient *ethclient.Client, accountMgr account.AccountManager) (Generator, error) {
 	chainID, err := ethClient.NetworkID(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	base := index * 1e4
-	println("index: ", index)
-	println("base: ", base)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
