@@ -6,7 +6,7 @@ package generator
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -186,7 +186,7 @@ func (g *transferGeneratorImlp) GenerateTransfer() <-chan *types.Transaction {
 				t := <-g.taskPool
 				tx, err := g.generateTransaction(t)
 				if err != nil {
-					log.Fatal("generate transaction error: ", err.Error())
+					panic(fmt.Sprintln("generate transaction error: ", err.Error()))
 				}
 				g.txPool <- tx
 
