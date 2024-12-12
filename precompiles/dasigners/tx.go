@@ -1,6 +1,7 @@
 package dasigners
 
 import (
+	"errors"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -8,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/evmos/ethermint/x/evm/statedb"
 
-	precopmiles_common "github.com/0glabs/0g-chain/precompiles/common"
+	precompiles_common "github.com/0glabs/0g-chain/precompiles/common"
 )
 
 func (d *DASignersPrecompile) RegisterSigner(
@@ -24,12 +25,12 @@ func (d *DASignersPrecompile) RegisterSigner(
 		return nil, err
 	}
 	// validation
-	sender := precopmiles_common.ToLowerHexWithoutPrefix(evm.Origin)
+	sender := precompiles_common.ToLowerHexWithoutPrefix(evm.Origin)
 	if sender != msg.Signer.Account {
 		return nil, fmt.Errorf(ErrInvalidSender, sender, msg.Signer.Account)
 	}
 	if contract.CallerAddress != evm.Origin {
-		return nil, fmt.Errorf(precopmiles_common.ErrSenderNotOrigin)
+		return nil, errors.New(precompiles_common.ErrSenderNotOrigin)
 	}
 	// execute
 	_, err = d.dasignersKeeper.RegisterSigner(sdk.WrapSDKContext(ctx), msg)
@@ -52,13 +53,13 @@ func (d *DASignersPrecompile) RegisterNextEpoch(
 	method *abi.Method,
 	args []interface{},
 ) ([]byte, error) {
-	msg, err := NewMsgRegisterNextEpoch(args, precopmiles_common.ToLowerHexWithoutPrefix(evm.Origin))
+	msg, err := NewMsgRegisterNextEpoch(args, precompiles_common.ToLowerHexWithoutPrefix(evm.Origin))
 	if err != nil {
 		return nil, err
 	}
 	// validation
 	if contract.CallerAddress != evm.Origin {
-		return nil, fmt.Errorf(precopmiles_common.ErrSenderNotOrigin)
+		return nil, errors.New(precompiles_common.ErrSenderNotOrigin)
 	}
 	// execute
 	_, err = d.dasignersKeeper.RegisterNextEpoch(sdk.WrapSDKContext(ctx), msg)
@@ -76,13 +77,13 @@ func (d *DASignersPrecompile) UpdateSocket(
 	method *abi.Method,
 	args []interface{},
 ) ([]byte, error) {
-	msg, err := NewMsgUpdateSocket(args, precopmiles_common.ToLowerHexWithoutPrefix(evm.Origin))
+	msg, err := NewMsgUpdateSocket(args, precompiles_common.ToLowerHexWithoutPrefix(evm.Origin))
 	if err != nil {
 		return nil, err
 	}
 	// validation
 	if contract.CallerAddress != evm.Origin {
-		return nil, fmt.Errorf(precopmiles_common.ErrSenderNotOrigin)
+		return nil, errors.New(precompiles_common.ErrSenderNotOrigin)
 	}
 	// execute
 	_, err = d.dasignersKeeper.UpdateSocket(sdk.WrapSDKContext(ctx), msg)

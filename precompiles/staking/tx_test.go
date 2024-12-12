@@ -224,7 +224,7 @@ func (s *StakingTestSuite) TestDelegate() {
 
 	testCases := []struct {
 		name          string
-		malleate      func(valAddr string) []byte
+		malleate      func(valAddr common.Address) []byte
 		gas           uint64
 		callerAddress *common.Address
 		postCheck     func(valAddr sdk.ValAddress)
@@ -233,7 +233,7 @@ func (s *StakingTestSuite) TestDelegate() {
 	}{
 		{
 			"success",
-			func(valAddr string) []byte {
+			func(valAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					valAddr,
@@ -265,7 +265,7 @@ func (s *StakingTestSuite) TestDelegate() {
 			operatorAddress, err := s.firstBondedValidator()
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(operatorAddress)), s.signerOne, 10000000)
 
 			if tc.expError {
 				s.Require().ErrorContains(err, tc.errContains)
@@ -283,7 +283,7 @@ func (s *StakingTestSuite) TestBeginRedelegate() {
 
 	testCases := []struct {
 		name          string
-		malleate      func(srcAddr, dstAddr string) []byte
+		malleate      func(srcAddr, dstAddr common.Address) []byte
 		gas           uint64
 		callerAddress *common.Address
 		postCheck     func(data []byte, srcAddr, dstAddr sdk.ValAddress)
@@ -292,7 +292,7 @@ func (s *StakingTestSuite) TestBeginRedelegate() {
 	}{
 		{
 			"success",
-			func(srcAddr, dstAddr string) []byte {
+			func(srcAddr, dstAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					srcAddr,
@@ -337,7 +337,7 @@ func (s *StakingTestSuite) TestBeginRedelegate() {
 
 			s.setupValidator(s.signerOne)
 
-			bz, err := s.runTx(tc.malleate(s.signerOne.ValAddr.String(), operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(s.signerOne.Addr, common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expError {
 				s.Require().ErrorContains(err, tc.errContains)
@@ -355,7 +355,7 @@ func (s *StakingTestSuite) TestUndelegate() {
 
 	testCases := []struct {
 		name          string
-		malleate      func(valAddr string) []byte
+		malleate      func(valAddr common.Address) []byte
 		gas           uint64
 		callerAddress *common.Address
 		postCheck     func(data []byte, valAddr sdk.ValAddress)
@@ -364,7 +364,7 @@ func (s *StakingTestSuite) TestUndelegate() {
 	}{
 		{
 			"success",
-			func(valAddr string) []byte {
+			func(valAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					valAddr,
@@ -405,7 +405,7 @@ func (s *StakingTestSuite) TestUndelegate() {
 
 			s.setupValidator(s.signerOne)
 
-			bz, err := s.runTx(tc.malleate(s.signerOne.ValAddr.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(s.signerOne.Addr), s.signerOne, 10000000)
 
 			if tc.expError {
 				s.Require().ErrorContains(err, tc.errContains)
@@ -423,7 +423,7 @@ func (s *StakingTestSuite) TestCancelUnbondingDelegation() {
 
 	testCases := []struct {
 		name          string
-		malleate      func(valAddr string, height *big.Int) []byte
+		malleate      func(valAddr common.Address, height *big.Int) []byte
 		gas           uint64
 		callerAddress *common.Address
 		postCheck     func(valAddr sdk.ValAddress)
@@ -432,7 +432,7 @@ func (s *StakingTestSuite) TestCancelUnbondingDelegation() {
 	}{
 		{
 			"success",
-			func(valAddr string, height *big.Int) []byte {
+			func(valAddr common.Address, height *big.Int) []byte {
 				input, err := s.abi.Pack(
 					method,
 					valAddr,
@@ -471,7 +471,7 @@ func (s *StakingTestSuite) TestCancelUnbondingDelegation() {
 			u, _ := s.stakingKeeper.GetUnbondingDelegation(s.Ctx, s.signerOne.AccAddr, s.signerOne.ValAddr)
 			height := u.Entries[0].CreationHeight
 
-			bz, err := s.runTx(tc.malleate(s.signerOne.ValAddr.String(), big.NewInt(height)), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(s.signerOne.Addr, big.NewInt(height)), s.signerOne, 10000000)
 
 			if tc.expError {
 				s.Require().ErrorContains(err, tc.errContains)

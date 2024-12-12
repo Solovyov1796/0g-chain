@@ -242,7 +242,7 @@ replace (
 	github.com/cometbft/cometbft-db => github.com/kava-labs/cometbft-db v0.9.1-kava.2
 	// Use cosmos-sdk fork with backported fix for unsafe-reset-all, staking transfer events, and custom tally handler support
 	// github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.46.11-kava.3
-	github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.47.10-0glabs.7
+	github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.0.0-20241226164042-2543aa53eee1
 	github.com/cosmos/iavl => github.com/kava-labs/iavl v1.2.0-kava.1
 	// See https://github.com/cosmos/cosmos-sdk/pull/13093
 	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.2
@@ -250,7 +250,7 @@ replace (
 	// TODO: Tag before release
 	github.com/ethereum/go-ethereum => github.com/evmos/go-ethereum v1.10.26-evmos-rc2
 	// Use ethermint fork that respects min-gas-price with NoBaseFee true and london enabled, and includes eip712 support
-	github.com/evmos/ethermint => github.com/0glabs/ethermint v0.21.0-0g.v3.1.7
+	github.com/evmos/ethermint => github.com/0glabs/ethermint v0.0.0-20241231151651-f7d1b1499e5a
 	// See https://github.com/cosmos/cosmos-sdk/pull/10401, https://github.com/cosmos/cosmos-sdk/commit/0592ba6158cd0bf49d894be1cef4faeec59e8320
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.9.0
 	// Downgraded to avoid bugs in following commits which causes "version does not exist" errors

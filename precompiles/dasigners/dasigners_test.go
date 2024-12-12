@@ -1,6 +1,7 @@
 package dasigners_test
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"cosmossdk.io/math"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/evmos/ethermint/x/evm/statedb"
 )
 
 type DASignersTestSuite struct {
@@ -99,7 +101,11 @@ func (suite *DASignersTestSuite) runTx(input []byte, signer *testutil.TestSigner
 	precompiles := suite.EvmKeeper.GetPrecompiles()
 	evm.WithPrecompiles(precompiles, []common.Address{suite.addr})
 
-	return suite.dasigners.Run(evm, contract, false)
+	bz, err := suite.dasigners.Run(evm, contract, false)
+	if err == nil {
+		evm.StateDB.(*statedb.StateDB).Commit()
+	}
+	return bz, err
 }
 
 func (suite *DASignersTestSuite) registerSigner(testSigner *testutil.TestSigner, sk *big.Int) *types.Signer {
@@ -308,8 +314,11 @@ func (suite *DASignersTestSuite) Test_DASigners() {
 	suite.AddDelegation(suite.signerOne.HexAddr, suite.signerOne.HexAddr, keeper.BondedConversionRate.Mul(sdk.NewIntFromUint64(params.TokensPerVote)))
 	suite.AddDelegation(suite.signerTwo.HexAddr, suite.signerOne.HexAddr, keeper.BondedConversionRate.Mul(sdk.NewIntFromUint64(params.TokensPerVote)).Mul(sdk.NewIntFromUint64(2)))
 	// tx test
+	fmt.Println("registering signer 1..")
 	signer1 := suite.registerSigner(suite.signerOne, big.NewInt(1))
+	fmt.Println("registering signer 2..")
 	signer2 := suite.registerSigner(suite.signerTwo, big.NewInt(11))
+	fmt.Println("signers registered..")
 	suite.updateSocket(suite.signerOne, signer1)
 	suite.updateSocket(suite.signerTwo, signer2)
 	suite.registerEpoch(suite.signerOne, big.NewInt(1))

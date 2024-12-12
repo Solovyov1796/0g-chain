@@ -34,7 +34,7 @@ struct Commission {
  * @dev Validator defines a validator.
  */
 struct Validator {
-    string operatorAddress;
+    address operatorAddress;
     string consensusPubkey;
     bool jailed;
     BondStatus status;
@@ -53,8 +53,8 @@ struct Validator {
  * @dev Delegation represents the bond with tokens held by an account.
  */
 struct Delegation {
-    string delegatorAddress;
-    string validatorAddress;
+    address delegatorAddress;
+    address validatorAddress;
     uint shares; // 18 decimals
 }
 
@@ -85,8 +85,8 @@ struct UnbondingDelegationEntry {
  * for a single validator in an time-ordered list.
  */
 struct UnbondingDelegation {
-    string delegatorAddress;
-    string validatorAddress;
+    address delegatorAddress;
+    address validatorAddress;
     UnbondingDelegationEntry[] entries;
 }
 
@@ -105,9 +105,9 @@ struct RedelegationResponse {
  * from a particular source validator to a particular destination validator.
  */
 struct Redelegation {
-    string delegatorAddress;
-    string validatorSrcAddress;
-    string validatorDstAddress;
+    address delegatorAddress;
+    address validatorSrcAddress;
+    address validatorDstAddress;
     RedelegationEntry[] entries;
 }
 
@@ -204,7 +204,7 @@ interface IStaking {
      * cosmos grpc: rpc Delegate(MsgDelegate) returns (MsgDelegateResponse);
      */
     function delegate(
-        string memory validatorAddress,
+        address validatorAddress,
         uint amount // in bond denom
     ) external;
 
@@ -215,8 +215,8 @@ interface IStaking {
      * cosmos grpc: rpc BeginRedelegate(MsgBeginRedelegate) returns (MsgBeginRedelegateResponse);
      */
     function beginRedelegate(
-        string memory validatorSrcAddress,
-        string memory validatorDstAddress,
+        address validatorSrcAddress,
+        address validatorDstAddress,
         uint amount // in bond denom
     ) external returns (uint completionTime);
 
@@ -227,7 +227,7 @@ interface IStaking {
      * cosmos grpc: rpc Undelegate(MsgUndelegate) returns (MsgUndelegateResponse);
      */
     function undelegate(
-        string memory validatorAddress,
+        address validatorAddress,
         uint amount // in bond denom
     ) external returns (uint completionTime);
 
@@ -239,7 +239,7 @@ interface IStaking {
      * cosmos grpc: rpc CancelUnbondingDelegation(MsgCancelUnbondingDelegation) returns (MsgCancelUnbondingDelegationResponse);
      */
     function cancelUnbondingDelegation(
-        string memory validatorAddress,
+        address validatorAddress,
         uint amount, // in bond denom
         uint creationHeight
     ) external;
@@ -273,7 +273,7 @@ interface IStaking {
      * cosmos grpc: rpc Validator(QueryValidatorRequest) returns (QueryValidatorResponse);
      */
     function validator(
-        string memory validatorAddress
+        address validatorAddress
     ) external view returns (Validator memory validator);
 
     /**
@@ -281,7 +281,7 @@ interface IStaking {
      * cosmos grpc: rpc ValidatorDelegations(QueryValidatorDelegationsRequest) returns (QueryValidatorDelegationsResponse);
      */
     function validatorDelegations(
-        string memory validatorAddr,
+        address validatorAddr,
         PageRequest memory pagination
     )
         external
@@ -297,7 +297,7 @@ interface IStaking {
      */
     //
     function validatorUnbondingDelegations(
-        string memory validatorAddr,
+        address validatorAddr,
         PageRequest memory pagination
     )
         external
@@ -312,8 +312,8 @@ interface IStaking {
      * cosmos grpc: rpc Delegation(QueryDelegationRequest) returns (QueryDelegationResponse);
      */
     function delegation(
-        string memory delegatorAddr,
-        string memory validatorAddr
+        address delegatorAddr,
+        address validatorAddr
     ) external view returns (Delegation memory delegation, uint balance);
 
     /**
@@ -321,8 +321,8 @@ interface IStaking {
      * cosmos grpc: rpc UnbondingDelegation(QueryUnbondingDelegationRequest) returns (QueryUnbondingDelegationResponse);
      */
     function unbondingDelegation(
-        string memory delegatorAddr,
-        string memory validatorAddr
+        address delegatorAddr,
+        address validatorAddr
     ) external view returns (UnbondingDelegation memory unbond);
 
     /**
@@ -331,7 +331,7 @@ interface IStaking {
      * cosmos grpc: rpc DelegatorDelegations(QueryDelegatorDelegationsRequest) returns (QueryDelegatorDelegationsResponse);
      */
     function delegatorDelegations(
-        string memory delegatorAddr,
+        address delegatorAddr,
         PageRequest memory pagination
     )
         external
@@ -346,7 +346,7 @@ interface IStaking {
      * cosmos grpc: rpc DelegatorUnbondingDelegations(QueryDelegatorUnbondingDelegationsRequest)
      */
     function delegatorUnbondingDelegations(
-        string memory delegatorAddr,
+        address delegatorAddr,
         PageRequest memory pagination
     )
         external
@@ -362,9 +362,9 @@ interface IStaking {
      * grpc: rpc Redelegations(QueryRedelegationsRequest) returns (QueryRedelegationsResponse);
      */
     function redelegations(
-        string memory delegatorAddress,
-        string memory srcValidatorAddress,
-        string memory dstValidatorAddress,
+        address delegatorAddress,
+        address srcValidatorAddress,
+        address dstValidatorAddress,
         PageRequest calldata pageRequest
     )
         external
@@ -379,7 +379,7 @@ interface IStaking {
      * cosmos grpc: rpc DelegatorValidators(QueryDelegatorValidatorsRequest) returns (QueryDelegatorValidatorsResponse);
      */
     function delegatorValidators(
-        string memory delegatorAddr,
+        address delegatorAddr,
         PageRequest memory pagination
     )
         external
@@ -394,8 +394,8 @@ interface IStaking {
      * cosmos grpc: rpc DelegatorValidator(QueryDelegatorValidatorRequest) returns (QueryDelegatorValidatorResponse);
      */
     function delegatorValidator(
-        string memory delegatorAddr,
-        string memory validatorAddr
+        address delegatorAddr,
+        address validatorAddr
     ) external view returns (Validator memory validator);
 
     /**

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	precopmiles_common "github.com/0glabs/0g-chain/precompiles/common"
+	precompiles_common "github.com/0glabs/0g-chain/precompiles/common"
 	dasignerstypes "github.com/0glabs/0g-chain/x/dasigners/v1/types"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -72,7 +72,7 @@ func SerializeG2(p BN254G2Point) []byte {
 
 func NewQueryQuorumCountRequest(args []interface{}) (*dasignerstypes.QueryQuorumCountRequest, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 1, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 1, len(args))
 	}
 
 	return &dasignerstypes.QueryQuorumCountRequest{
@@ -82,21 +82,21 @@ func NewQueryQuorumCountRequest(args []interface{}) (*dasignerstypes.QueryQuorum
 
 func NewQuerySignerRequest(args []interface{}) (*dasignerstypes.QuerySignerRequest, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 1, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 1, len(args))
 	}
 	accounts := args[0].([]common.Address)
 	req := dasignerstypes.QuerySignerRequest{
 		Accounts: make([]string, len(accounts)),
 	}
 	for i, account := range accounts {
-		req.Accounts[i] = precopmiles_common.ToLowerHexWithoutPrefix(account)
+		req.Accounts[i] = precompiles_common.ToLowerHexWithoutPrefix(account)
 	}
 	return &req, nil
 }
 
 func NewQueryEpochQuorumRequest(args []interface{}) (*dasignerstypes.QueryEpochQuorumRequest, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 2, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 2, len(args))
 	}
 
 	return &dasignerstypes.QueryEpochQuorumRequest{
@@ -107,7 +107,7 @@ func NewQueryEpochQuorumRequest(args []interface{}) (*dasignerstypes.QueryEpochQ
 
 func NewQueryEpochQuorumRowRequest(args []interface{}) (*dasignerstypes.QueryEpochQuorumRowRequest, error) {
 	if len(args) != 3 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 3, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 3, len(args))
 	}
 
 	return &dasignerstypes.QueryEpochQuorumRowRequest{
@@ -119,7 +119,7 @@ func NewQueryEpochQuorumRowRequest(args []interface{}) (*dasignerstypes.QueryEpo
 
 func NewQueryAggregatePubkeyG1Request(args []interface{}) (*dasignerstypes.QueryAggregatePubkeyG1Request, error) {
 	if len(args) != 3 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 3, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 3, len(args))
 	}
 
 	return &dasignerstypes.QueryAggregatePubkeyG1Request{
@@ -140,13 +140,13 @@ func NewIDASignersSignerDetail(signer *dasignerstypes.Signer) IDASignersSignerDe
 
 func NewMsgRegisterSigner(args []interface{}) (*dasignerstypes.MsgRegisterSigner, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 2, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 2, len(args))
 	}
 
 	signer := args[0].(IDASignersSignerDetail)
 	return &dasignerstypes.MsgRegisterSigner{
 		Signer: &dasignerstypes.Signer{
-			Account:  precopmiles_common.ToLowerHexWithoutPrefix(signer.Signer),
+			Account:  precompiles_common.ToLowerHexWithoutPrefix(signer.Signer),
 			Socket:   signer.Socket,
 			PubkeyG1: SerializeG1(signer.PkG1),
 			PubkeyG2: SerializeG2(signer.PkG2),
@@ -157,7 +157,7 @@ func NewMsgRegisterSigner(args []interface{}) (*dasignerstypes.MsgRegisterSigner
 
 func NewMsgRegisterNextEpoch(args []interface{}, account string) (*dasignerstypes.MsgRegisterNextEpoch, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 1, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 1, len(args))
 	}
 
 	return &dasignerstypes.MsgRegisterNextEpoch{
@@ -168,7 +168,7 @@ func NewMsgRegisterNextEpoch(args []interface{}, account string) (*dasignerstype
 
 func NewMsgUpdateSocket(args []interface{}, account string) (*dasignerstypes.MsgUpdateSocket, error) {
 	if len(args) != 1 {
-		return nil, fmt.Errorf(precopmiles_common.ErrInvalidNumberOfArgs, 1, len(args))
+		return nil, fmt.Errorf(precompiles_common.ErrInvalidNumberOfArgs, 1, len(args))
 	}
 
 	return &dasignerstypes.MsgUpdateSocket{
