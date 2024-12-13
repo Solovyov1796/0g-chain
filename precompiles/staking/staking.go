@@ -67,6 +67,20 @@ func (s *StakingPrecompile) RequiredGas(input []byte) uint64 {
 	return 0
 }
 
+func (s *StakingPrecompile) IsTx(method string) bool {
+	switch method {
+	case StakingFunctionCreateValidator,
+		StakingFunctionEditValidator,
+		StakingFunctionDelegate,
+		StakingFunctionBeginRedelegate,
+		StakingFunctionUndelegate,
+		StakingFunctionCancelUnbondingDelegation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Run implements vm.PrecompiledContract.
 func (s *StakingPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly bool) ([]byte, error) {
 	// parse input
@@ -80,6 +94,10 @@ func (s *StakingPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly boo
 	args, err := method.Inputs.Unpack(contract.Input[4:])
 	if err != nil {
 		return nil, err
+	}
+	// readonly check
+	if readonly && s.IsTx(method.Name) {
+		return nil, fmt.Errorf(precopmiles_common.ErrWriteOnReadOnly)
 	}
 	// get state db and context
 	stateDB, ok := evm.StateDB.(*statedb.StateDB)
