@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/0glabs/0g-chain/tests/benchmark/generator"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -25,8 +26,8 @@ func (s *Sender) Send() {
 		err := s.Client.SendTransaction(ctx, t)
 		if err != nil {
 			panic(fmt.Sprintln("Failed to send transactions ", t.Hash().String(), " error: ", err.Error()))
-			// } else {
-			// 	println(time.Now().Format("2006-01-02 15:04:05.000000"), ">>> ", "Sent transaction", t.Hash().String())
+		} else {
+			println(time.Now().Format("2006-01-02 15:04:05.000000"), ">>> ", "Sent transaction", t.Hash().String())
 		}
 	}
 }
