@@ -6,7 +6,7 @@ const (
 	senderCount       = 1
 	workloadPreBatch  = accountCount
 	txCount           = 10000
-	basePrefix        = 9370
+	basePrefix        = 4470
 	evmFaucetMnemonic = "brief similar type month pause march ribbon rocket vanish space walnut father filter similar wet exact biology ugly empower cousin erode lend science crisp"
 	//evmFaucetMnemonic = "news tornado sponsor drastic dolphin awful plastic select true lizard width idle ability pigeon runway lift oppose isolate maple aspect safe jungle author hole"
 	//"crash sort dwarf disease change advice attract clump avoid mobile clump right junior axis book fresh mask tube front require until face effort vault"
