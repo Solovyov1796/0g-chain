@@ -12,7 +12,7 @@ func safeStartGoroutine(do func()) {
 
 			buf := make([]byte, 4*1024)
 			n := runtime.Stack(buf, true)
-			println("panic stack trace:\n%s\n", buf[:n])
+			println("panic stack trace:\n", string(buf[:n]), "\n")
 		}
 	}()
 
