@@ -26,6 +26,7 @@ func (s *Sender) Send() {
 		limiter.Wait(context.Background())
 		err := s.Client.SendTransaction(ctx, t)
 		if err != nil {
+			println(time.Now().Format("2006-01-02 15:04:05.000000"), ">>> ", "Sent transaction", t.Hash().String(), "failed!", err.Error())
 			panicErr := errors.New(fmt.Sprintln("Failed to send transactions ", t.Hash().String(), " error: ", err.Error()))
 			panic(panicErr)
 		} else {
