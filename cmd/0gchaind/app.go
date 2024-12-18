@@ -107,18 +107,9 @@ func (ac appCreator) newApp(
 		skipLoadLatest = cast.ToBool(appOpts.Get(flagSkipLoadLatest))
 	}
 
-	return app.NewApp(
-		logger, db, homeDir, traceStore, ac.encodingConfig,
-		app.Options{
-			SkipLoadLatest:        skipLoadLatest,
-			SkipUpgradeHeights:    skipUpgradeHeights,
-			SkipGenesisInvariants: cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants)),
-			InvariantCheckPeriod:  cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
-			MempoolEnableAuth:     mempoolEnableAuth,
-			MempoolAuthAddresses:  mempoolAuthAddresses,
-			EVMTrace:              cast.ToString(appOpts.Get(ethermintflags.EVMTracer)),
-			EVMMaxGasWanted:       cast.ToUint64(appOpts.Get(ethermintflags.EVMMaxTxGasWanted)),
-		},
+	mempool := app.NewPriorityMempool()
+
+	bApp := app.NewBaseApp(logger, db, ac.encodingConfig,
 		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(strings.Replace(cast.ToString(appOpts.Get(server.FlagMinGasPrices)), ";", ",", -1)),
 		baseapp.SetHaltHeight(cast.ToUint64(appOpts.Get(server.FlagHaltHeight))),
@@ -132,7 +123,28 @@ func (ac appCreator) newApp(
 		baseapp.SetIAVLDisableFastNode(cast.ToBool(iavlDisableFastNode)),
 		baseapp.SetIAVLLazyLoading(cast.ToBool(appOpts.Get(server.FlagIAVLLazyLoading))),
 		baseapp.SetChainID(chainID),
+		baseapp.SetMempool(mempool),
 	)
+	bApp.SetTxEncoder(ac.encodingConfig.TxConfig.TxEncoder())
+	abciProposalHandler := app.NewDefaultProposalHandler(mempool, bApp)
+	bApp.SetPrepareProposal(abciProposalHandler.PrepareProposalHandler())
+
+	newApp := app.NewApp(
+		homeDir, traceStore, ac.encodingConfig,
+		app.Options{
+			SkipLoadLatest:        skipLoadLatest,
+			SkipUpgradeHeights:    skipUpgradeHeights,
+			SkipGenesisInvariants: cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants)),
+			InvariantCheckPeriod:  cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
+			MempoolEnableAuth:     mempoolEnableAuth,
+			MempoolAuthAddresses:  mempoolAuthAddresses,
+			EVMTrace:              cast.ToString(appOpts.Get(ethermintflags.EVMTracer)),
+			EVMMaxGasWanted:       cast.ToUint64(appOpts.Get(ethermintflags.EVMMaxTxGasWanted)),
+		},
+		bApp,
+	)
+
+	return newApp
 }
 
 // appExport writes out an app's state to json.
@@ -157,13 +169,15 @@ func (ac appCreator) appExport(
 
 	var tempApp *app.App
 	if height != -1 {
-		tempApp = app.NewApp(logger, db, homePath, traceStore, ac.encodingConfig, options)
+		bApp := app.NewBaseApp(logger, db, ac.encodingConfig)
+		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp)
 
 		if err := tempApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		tempApp = app.NewApp(logger, db, homePath, traceStore, ac.encodingConfig, options)
+		bApp := app.NewBaseApp(logger, db, ac.encodingConfig)
+		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp)
 	}
 	return tempApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)
 }

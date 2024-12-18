@@ -300,21 +300,24 @@ type App struct {
 func init() {
 }
 
+func NewBaseApp(logger tmlog.Logger, db dbm.DB, encodingConfig chainparams.EncodingConfig,
+	baseAppOptions ...func(*baseapp.BaseApp)) *baseapp.BaseApp {
+	bApp := baseapp.NewBaseApp(chaincfg.AppName, logger, db, encodingConfig.TxConfig.TxDecoder(), baseAppOptions...)
+	return bApp
+}
+
 // NewApp returns a reference to an initialized App.
 func NewApp(
-	logger tmlog.Logger,
-	db dbm.DB,
 	homePath string,
 	traceStore io.Writer,
 	encodingConfig chainparams.EncodingConfig,
 	options Options,
-	baseAppOptions ...func(*baseapp.BaseApp),
+	bApp *baseapp.BaseApp,
 ) *App {
 	appCodec := encodingConfig.Marshaler
 	legacyAmino := encodingConfig.Amino
 	interfaceRegistry := encodingConfig.InterfaceRegistry
 
-	bApp := baseapp.NewBaseApp(chaincfg.AppName, logger, db, encodingConfig.TxConfig.TxDecoder(), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(interfaceRegistry)

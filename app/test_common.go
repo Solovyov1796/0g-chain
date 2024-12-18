@@ -93,9 +93,10 @@ func NewTestAppFromSealed() TestApp {
 
 	encCfg := MakeEncodingConfig()
 
+	bApp := NewBaseApp(log.NewNopLogger(), db, encCfg, baseapp.SetChainID(TestChainId))
 	app := NewApp(
-		log.NewNopLogger(), db, chaincfg.DefaultNodeHome, nil,
-		encCfg, DefaultOptions, baseapp.SetChainID(TestChainId),
+		chaincfg.DefaultNodeHome, nil,
+		encCfg, DefaultOptions, bApp,
 	)
 	return TestApp{App: *app}
 }
