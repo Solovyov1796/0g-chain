@@ -92,6 +92,17 @@ func (d *DASignersPrecompile) RequiredGas(input []byte) uint64 {
 	return RequiredGasMax
 }
 
+func (d *DASignersPrecompile) IsTx(method string) bool {
+	switch method {
+	case DASignersFunctionUpdateSocket,
+		DASignersFunctionRegisterSigner,
+		DASignersFunctionRegisterNextEpoch:
+		return true
+	default:
+		return false
+	}
+}
+
 // Run implements vm.PrecompiledContract.
 func (d *DASignersPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly bool) ([]byte, error) {
 	// parse input
@@ -105,6 +116,10 @@ func (d *DASignersPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly b
 	args, err := method.Inputs.Unpack(contract.Input[4:])
 	if err != nil {
 		return nil, err
+	}
+	// readonly check
+	if readonly && d.IsTx(method.Name) {
+		return nil, fmt.Errorf(precopmiles_common.ErrWriteOnReadOnly)
 	}
 	// get state db and context
 	stateDB, ok := evm.StateDB.(*statedb.StateDB)
