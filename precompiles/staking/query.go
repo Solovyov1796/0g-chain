@@ -19,7 +19,10 @@ func (s *StakingPrecompile) Validators(ctx sdk.Context, _ *vm.EVM, method *abi.M
 
 	validators := make([]Validator, len(response.Validators))
 	for i, v := range response.Validators {
-		validators[i] = convertValidator(v)
+		validators[i], err = convertValidator(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -36,7 +39,12 @@ func (s *StakingPrecompile) Validator(ctx sdk.Context, _ *vm.EVM, method *abi.Me
 		return nil, err
 	}
 
-	return method.Outputs.Pack(convertValidator(response.Validator))
+	res, err := convertValidator(response.Validator)
+	if err != nil {
+		return nil, err
+	}
+
+	return method.Outputs.Pack(res)
 }
 
 func (s *StakingPrecompile) ValidatorDelegations(ctx sdk.Context, _ *vm.EVM, method *abi.Method, args []interface{}) ([]byte, error) {
@@ -51,7 +59,10 @@ func (s *StakingPrecompile) ValidatorDelegations(ctx sdk.Context, _ *vm.EVM, met
 
 	delegationResponses := make([]DelegationResponse, len(response.DelegationResponses))
 	for i, v := range response.DelegationResponses {
-		delegationResponses[i] = convertDelegationResponse(v)
+		delegationResponses[i], err = convertDelegationResponse(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -70,7 +81,10 @@ func (s *StakingPrecompile) ValidatorUnbondingDelegations(ctx sdk.Context, _ *vm
 
 	unbondingResponses := make([]UnbondingDelegation, len(response.UnbondingResponses))
 	for i, v := range response.UnbondingResponses {
-		unbondingResponses[i] = convertUnbondingDelegation(v)
+		unbondingResponses[i], err = convertUnbondingDelegation(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -86,7 +100,10 @@ func (s *StakingPrecompile) Delegation(ctx sdk.Context, _ *vm.EVM, method *abi.M
 	if err != nil {
 		return nil, err
 	}
-	delegation := convertDelegation(response.DelegationResponse.Delegation)
+	delegation, err := convertDelegation(response.DelegationResponse.Delegation)
+	if err != nil {
+		return nil, err
+	}
 	balance := response.DelegationResponse.Balance.Amount.BigInt()
 
 	return method.Outputs.Pack(delegation, balance)
@@ -102,7 +119,12 @@ func (s *StakingPrecompile) UnbondingDelegation(ctx sdk.Context, _ *vm.EVM, meth
 		return nil, err
 	}
 
-	return method.Outputs.Pack(convertUnbondingDelegation(response.Unbond))
+	res, err := convertUnbondingDelegation(response.Unbond)
+	if err != nil {
+		return nil, err
+	}
+
+	return method.Outputs.Pack(res)
 }
 
 func (s *StakingPrecompile) DelegatorDelegations(ctx sdk.Context, _ *vm.EVM, method *abi.Method, args []interface{}) ([]byte, error) {
@@ -117,7 +139,10 @@ func (s *StakingPrecompile) DelegatorDelegations(ctx sdk.Context, _ *vm.EVM, met
 
 	delegationResponses := make([]DelegationResponse, len(response.DelegationResponses))
 	for i, v := range response.DelegationResponses {
-		delegationResponses[i] = convertDelegationResponse(v)
+		delegationResponses[i], err = convertDelegationResponse(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -136,7 +161,10 @@ func (s *StakingPrecompile) DelegatorUnbondingDelegations(ctx sdk.Context, _ *vm
 
 	unbondingResponses := make([]UnbondingDelegation, len(response.UnbondingResponses))
 	for i, v := range response.UnbondingResponses {
-		unbondingResponses[i] = convertUnbondingDelegation(v)
+		unbondingResponses[i], err = convertUnbondingDelegation(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -155,7 +183,10 @@ func (s *StakingPrecompile) Redelegations(ctx sdk.Context, _ *vm.EVM, method *ab
 
 	redelegationResponses := make([]RedelegationResponse, len(response.RedelegationResponses))
 	for i, v := range response.RedelegationResponses {
-		redelegationResponses[i] = convertRedelegationResponse(v)
+		redelegationResponses[i], err = convertRedelegationResponse(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -174,7 +205,10 @@ func (s *StakingPrecompile) DelegatorValidators(ctx sdk.Context, _ *vm.EVM, meth
 
 	validators := make([]Validator, len(response.Validators))
 	for i, v := range response.Validators {
-		validators[i] = convertValidator(v)
+		validators[i], err = convertValidator(v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	paginationResult := convertPageResponse(response.Pagination)
 
@@ -191,7 +225,12 @@ func (s *StakingPrecompile) DelegatorValidator(ctx sdk.Context, _ *vm.EVM, metho
 		return nil, err
 	}
 
-	return method.Outputs.Pack(convertValidator(response.Validator))
+	res, err := convertValidator(response.Validator)
+	if err != nil {
+		return nil, err
+	}
+
+	return method.Outputs.Pack(res)
 }
 
 func (s *StakingPrecompile) Pool(ctx sdk.Context, _ *vm.EVM, method *abi.Method, args []interface{}) ([]byte, error) {

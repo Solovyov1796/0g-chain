@@ -72,7 +72,7 @@ func (s *StakingTestSuite) TestValidator() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(operatorAddress string) []byte
+		malleate    func(operatorAddress common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -80,7 +80,7 @@ func (s *StakingTestSuite) TestValidator() {
 	}{
 		{
 			"success",
-			func(operatorAddress string) []byte {
+			func(operatorAddress common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					operatorAddress,
@@ -94,7 +94,7 @@ func (s *StakingTestSuite) TestValidator() {
 				operatorAddress, err := s.firstBondedValidator()
 				s.Require().NoError(err)
 				validator := out[0].(stakingprecompile.Validator)
-				s.Require().EqualValues(common.HexToAddress(validator.OperatorAddress), common.BytesToAddress(operatorAddress.Bytes()))
+				s.Require().EqualValues(validator.OperatorAddress, common.BytesToAddress(operatorAddress.Bytes()))
 			},
 			100000,
 			false,
@@ -108,7 +108,7 @@ func (s *StakingTestSuite) TestValidator() {
 			operatorAddress, err := s.firstBondedValidator()
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -127,7 +127,7 @@ func (s *StakingTestSuite) TestValidatorDelegations() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(operatorAddress string) []byte
+		malleate    func(operatorAddress common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -135,7 +135,7 @@ func (s *StakingTestSuite) TestValidatorDelegations() {
 	}{
 		{
 			"success",
-			func(operatorAddress string) []byte {
+			func(operatorAddress common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					operatorAddress,
@@ -170,7 +170,7 @@ func (s *StakingTestSuite) TestValidatorDelegations() {
 			operatorAddress, err := s.firstBondedValidator()
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -189,7 +189,7 @@ func (s *StakingTestSuite) TestValidatorUnbondingDelegations() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(operatorAddress string) []byte
+		malleate    func(operatorAddress common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -197,7 +197,7 @@ func (s *StakingTestSuite) TestValidatorUnbondingDelegations() {
 	}{
 		{
 			"success",
-			func(operatorAddress string) []byte {
+			func(operatorAddress common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					operatorAddress,
@@ -234,7 +234,7 @@ func (s *StakingTestSuite) TestValidatorUnbondingDelegations() {
 			_, err = s.stakingKeeper.Undelegate(s.Ctx, delAddr, operatorAddress, sdk.NewDec(1))
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -253,7 +253,7 @@ func (s *StakingTestSuite) TestDelegation() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr, valAddr string) []byte
+		malleate    func(delAddr, valAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -261,7 +261,7 @@ func (s *StakingTestSuite) TestDelegation() {
 	}{
 		{
 			"success",
-			func(delAddr, valAddr string) []byte {
+			func(delAddr, valAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -298,7 +298,7 @@ func (s *StakingTestSuite) TestDelegation() {
 			delAddr, err := sdk.AccAddressFromBech32(d[0].DelegatorAddress)
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String(), operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes()), common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -317,7 +317,7 @@ func (s *StakingTestSuite) TestUnbondingDelegation() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr, valAddr string) []byte
+		malleate    func(delAddr, valAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -325,7 +325,7 @@ func (s *StakingTestSuite) TestUnbondingDelegation() {
 	}{
 		{
 			"success",
-			func(delAddr, valAddr string) []byte {
+			func(delAddr, valAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -359,7 +359,7 @@ func (s *StakingTestSuite) TestUnbondingDelegation() {
 			_, err = s.stakingKeeper.Undelegate(s.Ctx, delAddr, operatorAddress, sdk.NewDec(1))
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String(), operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes()), common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -378,7 +378,7 @@ func (s *StakingTestSuite) TestDelegatorDelegations() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr string) []byte
+		malleate    func(delAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -386,7 +386,7 @@ func (s *StakingTestSuite) TestDelegatorDelegations() {
 	}{
 		{
 			"success",
-			func(delAddr string) []byte {
+			func(delAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -423,7 +423,7 @@ func (s *StakingTestSuite) TestDelegatorDelegations() {
 			delAddr, err := sdk.AccAddressFromBech32(d[0].DelegatorAddress)
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -442,7 +442,7 @@ func (s *StakingTestSuite) TestDelegatorUnbondingDelegations() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr string) []byte
+		malleate    func(delAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -450,7 +450,7 @@ func (s *StakingTestSuite) TestDelegatorUnbondingDelegations() {
 	}{
 		{
 			"success",
-			func(delAddr string) []byte {
+			func(delAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -489,7 +489,7 @@ func (s *StakingTestSuite) TestDelegatorUnbondingDelegations() {
 			_, err = s.stakingKeeper.Undelegate(s.Ctx, delAddr, operatorAddress, sdk.NewDec(1))
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -508,7 +508,7 @@ func (s *StakingTestSuite) TestRedelegations() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr, srcValAddr, dstValAddr string) []byte
+		malleate    func(delAddr, srcValAddr, dstValAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -516,7 +516,7 @@ func (s *StakingTestSuite) TestRedelegations() {
 	}{
 		{
 			"success",
-			func(delAddr, srcValAddr, dstValAddr string) []byte {
+			func(delAddr, srcValAddr, dstValAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -559,7 +559,7 @@ func (s *StakingTestSuite) TestRedelegations() {
 			_, err = s.stakingKeeper.BeginRedelegation(s.Ctx, delAddr, operatorAddress, s.signerOne.ValAddr, sdk.NewDec(1))
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String(), operatorAddress.String(), s.signerOne.ValAddr.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes()), common.Address(operatorAddress.Bytes()), common.Address(s.signerOne.ValAddr.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -578,7 +578,7 @@ func (s *StakingTestSuite) TestDelegatorValidators() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr string) []byte
+		malleate    func(delAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -586,7 +586,7 @@ func (s *StakingTestSuite) TestDelegatorValidators() {
 	}{
 		{
 			"success",
-			func(delAddr string) []byte {
+			func(delAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -623,7 +623,7 @@ func (s *StakingTestSuite) TestDelegatorValidators() {
 			delAddr, err := sdk.AccAddressFromBech32(d[0].DelegatorAddress)
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)
@@ -642,7 +642,7 @@ func (s *StakingTestSuite) TestDelegatorValidator() {
 
 	testCases := []struct {
 		name        string
-		malleate    func(delAddr, valAddr string) []byte
+		malleate    func(delAddr, valAddr common.Address) []byte
 		postCheck   func(bz []byte)
 		gas         uint64
 		expErr      bool
@@ -650,7 +650,7 @@ func (s *StakingTestSuite) TestDelegatorValidator() {
 	}{
 		{
 			"success",
-			func(delAddr, valAddr string) []byte {
+			func(delAddr, valAddr common.Address) []byte {
 				input, err := s.abi.Pack(
 					method,
 					delAddr,
@@ -682,7 +682,7 @@ func (s *StakingTestSuite) TestDelegatorValidator() {
 			delAddr, err := sdk.AccAddressFromBech32(d[0].DelegatorAddress)
 			s.Require().NoError(err)
 
-			bz, err := s.runTx(tc.malleate(delAddr.String(), operatorAddress.String()), s.signerOne, 10000000)
+			bz, err := s.runTx(tc.malleate(common.Address(delAddr.Bytes()), common.Address(operatorAddress.Bytes())), s.signerOne, 10000000)
 
 			if tc.expErr {
 				s.Require().Error(err)

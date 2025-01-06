@@ -1,16 +1,14 @@
 package dasigners
 
 import (
-	"fmt"
 	"strings"
 
-	precopmiles_common "github.com/0glabs/0g-chain/precompiles/common"
+	precompiles_common "github.com/0glabs/0g-chain/precompiles/common"
 	dasignerskeeper "github.com/0glabs/0g-chain/x/dasigners/v1/keeper"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/evmos/ethermint/x/evm/statedb"
 )
 
 const (
@@ -47,17 +45,8 @@ var RequiredGasBasic = map[string]uint64{
 	DASignersFunctionRegisteredEpoch:   10000,
 }
 
-var KVGasConfig storetypes.GasConfig = storetypes.GasConfig{
-	HasCost:          0,
-	DeleteCost:       0,
-	ReadCostFlat:     0,
-	ReadCostPerByte:  0,
-	WriteCostFlat:    0,
-	WriteCostPerByte: 0,
-	IterNextCostFlat: 0,
-}
-
 var _ vm.PrecompiledContract = &DASignersPrecompile{}
+var _ precompiles_common.PrecompileCommon = &DASignersPrecompile{}
 
 type DASignersPrecompile struct {
 	abi             abi.ABI
@@ -103,33 +92,20 @@ func (d *DASignersPrecompile) IsTx(method string) bool {
 	}
 }
 
+func (d *DASignersPrecompile) Abi() *abi.ABI {
+	return &d.abi
+}
+
+func (d *DASignersPrecompile) KVGasConfig() storetypes.GasConfig {
+	return storetypes.KVGasConfig()
+}
+
 // Run implements vm.PrecompiledContract.
 func (d *DASignersPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly bool) ([]byte, error) {
-	// parse input
-	if len(contract.Input) < 4 {
-		return nil, vm.ErrExecutionReverted
-	}
-	method, err := d.abi.MethodById(contract.Input[:4])
-	if err != nil {
-		return nil, vm.ErrExecutionReverted
-	}
-	args, err := method.Inputs.Unpack(contract.Input[4:])
+	ctx, stateDB, method, initialGas, args, err := precompiles_common.InitializePrecompileCall(d, evm, contract, readonly)
 	if err != nil {
 		return nil, err
 	}
-	// readonly check
-	if readonly && d.IsTx(method.Name) {
-		return nil, fmt.Errorf(precopmiles_common.ErrWriteOnReadOnly)
-	}
-	// get state db and context
-	stateDB, ok := evm.StateDB.(*statedb.StateDB)
-	if !ok {
-		return nil, fmt.Errorf(precopmiles_common.ErrGetStateDB)
-	}
-	ctx := stateDB.GetContext()
-	// reset gas config
-	ctx = ctx.WithKVGasConfig(KVGasConfig)
-	initialGas := ctx.GasMeter().GasConsumed()
 
 	var bz []byte
 	switch method.Name {

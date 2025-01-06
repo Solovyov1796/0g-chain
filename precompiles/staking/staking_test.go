@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/evmos/ethermint/x/evm/statedb"
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
 	"github.com/stretchr/testify/suite"
 )
@@ -137,7 +138,11 @@ func (suite *StakingTestSuite) runTx(input []byte, signer *testutil.TestSigner, 
 	precompiles := suite.EvmKeeper.GetPrecompiles()
 	evm.WithPrecompiles(precompiles, []common.Address{suite.addr})
 
-	return suite.staking.Run(evm, contract, false)
+	bz, err := suite.staking.Run(evm, contract, false)
+	if err == nil {
+		evm.StateDB.(*statedb.StateDB).Commit()
+	}
+	return bz, err
 }
 
 func TestKeeperSuite(t *testing.T) {

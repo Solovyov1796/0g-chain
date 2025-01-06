@@ -1,16 +1,14 @@
 package staking
 
 import (
-	"fmt"
 	"strings"
 
-	precopmiles_common "github.com/0glabs/0g-chain/precompiles/common"
-	"github.com/cosmos/cosmos-sdk/store/types"
+	precompiles_common "github.com/0glabs/0g-chain/precompiles/common"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/evmos/ethermint/x/evm/statedb"
 )
 
 const (
@@ -40,6 +38,7 @@ const (
 )
 
 var _ vm.PrecompiledContract = &StakingPrecompile{}
+var _ precompiles_common.PrecompileCommon = &StakingPrecompile{}
 
 type StakingPrecompile struct {
 	abi           abi.ABI
@@ -67,6 +66,10 @@ func (s *StakingPrecompile) RequiredGas(input []byte) uint64 {
 	return 0
 }
 
+func (s *StakingPrecompile) Abi() *abi.ABI {
+	return &s.abi
+}
+
 func (s *StakingPrecompile) IsTx(method string) bool {
 	switch method {
 	case StakingFunctionCreateValidator,
@@ -81,33 +84,16 @@ func (s *StakingPrecompile) IsTx(method string) bool {
 	}
 }
 
+func (s *StakingPrecompile) KVGasConfig() storetypes.GasConfig {
+	return storetypes.KVGasConfig()
+}
+
 // Run implements vm.PrecompiledContract.
 func (s *StakingPrecompile) Run(evm *vm.EVM, contract *vm.Contract, readonly bool) ([]byte, error) {
-	// parse input
-	if len(contract.Input) < 4 {
-		return nil, vm.ErrExecutionReverted
-	}
-	method, err := s.abi.MethodById(contract.Input[:4])
-	if err != nil {
-		return nil, vm.ErrExecutionReverted
-	}
-	args, err := method.Inputs.Unpack(contract.Input[4:])
+	ctx, stateDB, method, initialGas, args, err := precompiles_common.InitializePrecompileCall(s, evm, contract, readonly)
 	if err != nil {
 		return nil, err
 	}
-	// readonly check
-	if readonly && s.IsTx(method.Name) {
-		return nil, fmt.Errorf(precopmiles_common.ErrWriteOnReadOnly)
-	}
-	// get state db and context
-	stateDB, ok := evm.StateDB.(*statedb.StateDB)
-	if !ok {
-		return nil, fmt.Errorf(precopmiles_common.ErrGetStateDB)
-	}
-	ctx := stateDB.GetContext()
-	// reset gas config
-	ctx = ctx.WithKVGasConfig(types.KVGasConfig())
-	initialGas := ctx.GasMeter().GasConsumed()
 
 	var bz []byte
 	switch method.Name {
