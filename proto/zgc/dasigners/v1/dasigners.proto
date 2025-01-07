@@ -25,5 +25,5 @@ message Quorum {
 }
 
 message Quorums {
-  repeated Quorum quorums = 1; 
+  repeated Quorum quorums = 1;
 }

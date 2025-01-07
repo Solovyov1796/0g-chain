@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.8.0;
 
+struct Supply {
+    uint256 cap;
+    uint256 total;
+}
+
 /**
  * @title WrappedA0GIBase is a precompile for wrapped a0gi(wA0GI), it enables wA0GI mint/burn native 0g token directly.
  */
 interface IWrappedA0GIBase {
-    struct Supply {
-        uint256 cap;
-        uint256 total;
-    }
-
     /**
      * @dev set the wA0GI address.
      * It is designed to be called by governance module only so it's not implemented at EVM precompile side.

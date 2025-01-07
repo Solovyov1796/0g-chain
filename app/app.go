@@ -111,6 +111,7 @@ import (
 	"github.com/0glabs/0g-chain/chaincfg"
 	dasignersprecompile "github.com/0glabs/0g-chain/precompiles/dasigners"
 	stakingprecompile "github.com/0glabs/0g-chain/precompiles/staking"
+	wrappeda0gibaseprecompile "github.com/0glabs/0g-chain/precompiles/wrapped-a0gi-base"
 
 	"github.com/0glabs/0g-chain/x/bep3"
 	bep3keeper "github.com/0glabs/0g-chain/x/bep3/keeper"
@@ -140,6 +141,9 @@ import (
 	validatorvesting "github.com/0glabs/0g-chain/x/validator-vesting"
 	validatorvestingrest "github.com/0glabs/0g-chain/x/validator-vesting/client/rest"
 	validatorvestingtypes "github.com/0glabs/0g-chain/x/validator-vesting/types"
+	wrappeda0gibase "github.com/0glabs/0g-chain/x/wrapped-a0gi-base"
+	wrappeda0gibasekeeper "github.com/0glabs/0g-chain/x/wrapped-a0gi-base/keeper"
+	wrappeda0gibasetypes "github.com/0glabs/0g-chain/x/wrapped-a0gi-base/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -187,6 +191,7 @@ var (
 		dasigners.AppModuleBasic{},
 		consensus.AppModuleBasic{},
 		ibcwasm.AppModuleBasic{},
+		wrappeda0gibase.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -275,6 +280,7 @@ type App struct {
 	dasignersKeeper       dasignerskeeper.Keeper
 	consensusParamsKeeper consensusparamkeeper.Keeper
 	precisebankKeeper     precisebankkeeper.Keeper
+	wrappeda0gibaseKeeper wrappeda0gibasekeeper.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
@@ -327,6 +333,7 @@ func NewApp(
 		vestingtypes.StoreKey,
 		consensusparamtypes.StoreKey, crisistypes.StoreKey, precisebanktypes.StoreKey,
 		ibcwasmtypes.StoreKey,
+		wrappeda0gibasetypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey, evmtypes.TransientKey, feemarkettypes.TransientKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -496,11 +503,10 @@ func NewApp(
 		app.accountKeeper,
 	)
 
-	// dasigners keeper
-	app.dasignersKeeper = dasignerskeeper.NewKeeper(keys[dasignerstypes.StoreKey], appCodec, app.stakingKeeper, govAuthAddrStr)
 	// precopmiles
 	precompiles := make(map[common.Address]vm.PrecompiledContract)
 	// dasigners
+	app.dasignersKeeper = dasignerskeeper.NewKeeper(keys[dasignerstypes.StoreKey], appCodec, app.stakingKeeper, govAuthAddrStr)
 	daSignersPrecompile, err := dasignersprecompile.NewDASignersPrecompile(app.dasignersKeeper)
 	if err != nil {
 		panic(fmt.Sprintf("initialize dasigners precompile failed: %v", err))
@@ -512,6 +518,13 @@ func NewApp(
 		panic(fmt.Sprintf("initialize staking precompile failed: %v", err))
 	}
 	precompiles[stakingPrecompile.Address()] = stakingPrecompile
+	// wrapped wrapped a0gi base
+	app.wrappeda0gibaseKeeper = wrappeda0gibasekeeper.NewKeeper(keys[wrappeda0gibasetypes.StoreKey], appCodec, govAuthAddrStr)
+	wrappeda0gibasePrecompile, err := wrappeda0gibaseprecompile.NewWrappedA0giBasePrecompile(app.wrappeda0gibaseKeeper)
+	if err != nil {
+		panic(fmt.Sprintf("initialize wrapped a0gi base precompile failed: %v", err))
+	}
+	precompiles[wrappeda0gibasePrecompile.Address()] = wrappeda0gibasePrecompile
 
 	app.evmKeeper = evmkeeper.NewKeeper(
 		appCodec, keys[evmtypes.StoreKey], tkeys[evmtypes.TransientKey],
@@ -695,6 +708,7 @@ func NewApp(
 		council.NewAppModule(app.CouncilKeeper),
 		ibcwasm.NewAppModule(app.ibcWasmClientKeeper),
 		dasigners.NewAppModule(app.dasignersKeeper, *app.stakingKeeper),
+		wrappeda0gibase.NewAppModule(app.wrappeda0gibaseKeeper),
 	)
 
 	// Warning: Some begin blockers must run before others. Ensure the dependencies are understood before modifying this list.
@@ -742,6 +756,7 @@ func NewApp(
 		precisebanktypes.ModuleName,
 		ibcwasmtypes.ModuleName,
 		dasignerstypes.ModuleName,
+		wrappeda0gibasetypes.ModuleName,
 	)
 
 	// Warning: Some end blockers must run before others. Ensure the dependencies are understood before modifying this list.
@@ -779,6 +794,7 @@ func NewApp(
 		precisebanktypes.ModuleName,
 		ibcwasmtypes.ModuleName,
 		dasignerstypes.ModuleName,
+		wrappeda0gibasetypes.ModuleName,
 	)
 
 	// Warning: Some init genesis methods must run before others. Ensure the dependencies are understood before modifying this list
@@ -815,6 +831,7 @@ func NewApp(
 		crisistypes.ModuleName,      // runs the invariants at genesis, should run after other modules
 		ibcwasmtypes.ModuleName,
 		dasignerstypes.ModuleName,
+		wrappeda0gibasetypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.crisisKeeper)
