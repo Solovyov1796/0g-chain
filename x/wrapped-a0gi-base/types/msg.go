@@ -1,25 +1,11 @@
 package types
 
 import (
-	"encoding/hex"
-	fmt "fmt"
-
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var _, _, _, _ sdk.Msg = &MsgSetWA0GI{}, &MsgSetMintCap{}, &MsgMint{}, &MsgBurn{}
-
-func ValidateHexAddress(account string) error {
-	addr, err := hex.DecodeString(account)
-	if err != nil {
-		return err
-	}
-	if len(addr) != 20 {
-		return fmt.Errorf("invalid address length")
-	}
-	return nil
-}
 
 func (msg *MsgSetWA0GI) GetSigners() []sdk.AccAddress {
 	addr, _ := sdk.AccAddressFromBech32(msg.Authority)
@@ -29,10 +15,6 @@ func (msg *MsgSetWA0GI) GetSigners() []sdk.AccAddress {
 func (msg *MsgSetWA0GI) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return errorsmod.Wrap(err, "authority")
-	}
-
-	if err := ValidateHexAddress(msg.Address); err != nil {
-		return errorsmod.Wrap(err, "address")
 	}
 
 	return nil
@@ -50,10 +32,6 @@ func (msg *MsgSetMintCap) GetSigners() []sdk.AccAddress {
 func (msg *MsgSetMintCap) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return errorsmod.Wrap(err, "authority")
-	}
-
-	if err := ValidateHexAddress(msg.Minter); err != nil {
-		return errorsmod.Wrap(err, "minter")
 	}
 
 	return nil

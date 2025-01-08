@@ -210,6 +210,7 @@ var (
 		bep3types.ModuleName:            {authtypes.Burner, authtypes.Minter},
 		minttypes.ModuleName:            {authtypes.Minter},
 		precisebanktypes.ModuleName:     {authtypes.Minter, authtypes.Burner}, // used for reserve account to back fractional amounts
+		wrappeda0gibasetypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 	}
 )
 
@@ -519,7 +520,7 @@ func NewApp(
 	}
 	precompiles[stakingPrecompile.Address()] = stakingPrecompile
 	// wrapped wrapped a0gi base
-	app.wrappeda0gibaseKeeper = wrappeda0gibasekeeper.NewKeeper(keys[wrappeda0gibasetypes.StoreKey], appCodec, govAuthAddrStr)
+	app.wrappeda0gibaseKeeper = wrappeda0gibasekeeper.NewKeeper(keys[wrappeda0gibasetypes.StoreKey], appCodec, app.precisebankKeeper, govAuthAddrStr)
 	wrappeda0gibasePrecompile, err := wrappeda0gibaseprecompile.NewWrappedA0giBasePrecompile(app.wrappeda0gibaseKeeper)
 	if err != nil {
 		panic(fmt.Sprintf("initialize wrapped a0gi base precompile failed: %v", err))

@@ -13,9 +13,14 @@ interface IWrappedA0GIBase {
     /**
      * @dev set the wA0GI address.
      * It is designed to be called by governance module only so it's not implemented at EVM precompile side.
-     * @param
+     * @param addr address of wA0GI
      */
     // function setWA0GI(address addr) external;
+
+    /**
+     * @dev get the wA0GI address.
+     */
+    function getWA0GI() external returns (address);
 
     /**
      * @dev set the cap for a minter.

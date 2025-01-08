@@ -12,16 +12,25 @@ option (gogoproto.goproto_getters_all) = false;
 
 // Query defines the gRPC querier service for the wrapped a0gi base module
 service Query {
+  rpc GetWA0GI(GetWA0GIRequest) returns (GetWA0GIResponse) {
+    option (google.api.http).get = "/0g/wrapped-a0gi-base/get-wa0gi";
+  }
   rpc MinterSupply(MinterSupplyRequest) returns (MinterSupplyResponse) {
     option (google.api.http).get = "/0g/wrapped-a0gi-base/minter-supply";
   }
 }
 
+message GetWA0GIRequest {}
+
+message GetWA0GIResponse {
+  bytes address = 1;
+}
+
 message MinterSupplyRequest {
-  string address = 1;
+  bytes address = 1;
 }
 
 message MinterSupplyResponse {
-  string cap = 1;
-  string supply = 2;
+  bytes cap = 1; // big endian
+  bytes supply = 2; // big endian
 }
