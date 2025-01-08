@@ -33,8 +33,7 @@ message MsgSetMintCapResponse {}
 
 message MsgMint {
   bytes minter = 1;
-  bytes to = 2;
-  bytes amount = 3; // big endian
+  bytes amount = 2; // big endian
 }
 
 message MsgMintResponse {}

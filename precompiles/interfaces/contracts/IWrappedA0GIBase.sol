@@ -37,18 +37,17 @@ interface IWrappedA0GIBase {
     function minterSupply(address minter) external view returns (Supply memory);
 
     /**
-     * @dev mint a0gi to given address directly, add corresponding amount to minter's mint supply.
+     * @dev mint a0gi to this precompile, add corresponding amount to minter's mint supply.
      * If sender's final mint supply exceeds its mint cap, the transaction will revert.
-     * Can only be called by
-     *
+     * Can only be called by WA0GI.
      * @param minter minter address
-     * @param to recipient address
      * @param amount amount to mint
      */
-    function mint(address minter, address to, uint256 amount) external;
+    function mint(address minter, uint256 amount) external;
 
     /**
      * @dev burn given amount of a0gi on behalf of minter, reduce corresponding amount from sender's mint supply.
+     * Can only be called by WA0GI.
      * @param minter minter address
      * @param amount amount to burn
      */

@@ -35,12 +35,8 @@ func (k Keeper) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.MsgBurnR
 	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
 		return nil, err
 	}
-	// transfer & burn
+	// burn
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
-	burner := sdk.AccAddress(minter.Bytes())
-	if err = k.pbkeeper.SendCoinsFromAccountToModule(ctx, burner, types.ModuleName, sdk.NewCoins(c)); err != nil {
-		return nil, err
-	}
 	if err = k.pbkeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
 		return nil, err
 	}
@@ -68,13 +64,9 @@ func (k Keeper) Mint(goCtx context.Context, msg *types.MsgMint) (*types.MsgMintR
 	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
 		return nil, err
 	}
-	// mint & transfer
+	// mint
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
 	if err = k.pbkeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
-		return nil, err
-	}
-	recipient := sdk.AccAddress(common.BytesToAddress(msg.To).Bytes())
-	if err = k.pbkeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, sdk.NewCoins(c)); err != nil {
 		return nil, err
 	}
 	return &types.MsgMintResponse{}, nil
