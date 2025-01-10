@@ -30,7 +30,7 @@ var (
 
 // Wrappeda0gibaseMetaData contains all meta data concerning the Wrappeda0gibase contract.
 var Wrappeda0gibaseMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWA0GI\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"minterSupply\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cap\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"total\",\"type\":\"uint256\"}],\"internalType\":\"structSupply\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWA0GI\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"minterSupply\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cap\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"total\",\"type\":\"uint256\"}],\"internalType\":\"structSupply\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // Wrappeda0gibaseABI is the input ABI used to generate the binding from.
@@ -179,6 +179,37 @@ func (_Wrappeda0gibase *Wrappeda0gibaseTransactorRaw) Transact(opts *bind.Transa
 	return _Wrappeda0gibase.Contract.contract.Transact(opts, method, params...)
 }
 
+// GetWA0GI is a free data retrieval call binding the contract method 0xa9283a7a.
+//
+// Solidity: function getWA0GI() view returns(address)
+func (_Wrappeda0gibase *Wrappeda0gibaseCaller) GetWA0GI(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Wrappeda0gibase.contract.Call(opts, &out, "getWA0GI")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// GetWA0GI is a free data retrieval call binding the contract method 0xa9283a7a.
+//
+// Solidity: function getWA0GI() view returns(address)
+func (_Wrappeda0gibase *Wrappeda0gibaseSession) GetWA0GI() (common.Address, error) {
+	return _Wrappeda0gibase.Contract.GetWA0GI(&_Wrappeda0gibase.CallOpts)
+}
+
+// GetWA0GI is a free data retrieval call binding the contract method 0xa9283a7a.
+//
+// Solidity: function getWA0GI() view returns(address)
+func (_Wrappeda0gibase *Wrappeda0gibaseCallerSession) GetWA0GI() (common.Address, error) {
+	return _Wrappeda0gibase.Contract.GetWA0GI(&_Wrappeda0gibase.CallOpts)
+}
+
 // MinterSupply is a free data retrieval call binding the contract method 0x95609212.
 //
 // Solidity: function minterSupply(address minter) view returns((uint256,uint256))
@@ -229,27 +260,6 @@ func (_Wrappeda0gibase *Wrappeda0gibaseSession) Burn(minter common.Address, amou
 // Solidity: function burn(address minter, uint256 amount) returns()
 func (_Wrappeda0gibase *Wrappeda0gibaseTransactorSession) Burn(minter common.Address, amount *big.Int) (*types.Transaction, error) {
 	return _Wrappeda0gibase.Contract.Burn(&_Wrappeda0gibase.TransactOpts, minter, amount)
-}
-
-// GetWA0GI is a paid mutator transaction binding the contract method 0xa9283a7a.
-//
-// Solidity: function getWA0GI() returns(address)
-func (_Wrappeda0gibase *Wrappeda0gibaseTransactor) GetWA0GI(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Wrappeda0gibase.contract.Transact(opts, "getWA0GI")
-}
-
-// GetWA0GI is a paid mutator transaction binding the contract method 0xa9283a7a.
-//
-// Solidity: function getWA0GI() returns(address)
-func (_Wrappeda0gibase *Wrappeda0gibaseSession) GetWA0GI() (*types.Transaction, error) {
-	return _Wrappeda0gibase.Contract.GetWA0GI(&_Wrappeda0gibase.TransactOpts)
-}
-
-// GetWA0GI is a paid mutator transaction binding the contract method 0xa9283a7a.
-//
-// Solidity: function getWA0GI() returns(address)
-func (_Wrappeda0gibase *Wrappeda0gibaseTransactorSession) GetWA0GI() (*types.Transaction, error) {
-	return _Wrappeda0gibase.Contract.GetWA0GI(&_Wrappeda0gibase.TransactOpts)
 }
 
 // Mint is a paid mutator transaction binding the contract method 0x40c10f19.
