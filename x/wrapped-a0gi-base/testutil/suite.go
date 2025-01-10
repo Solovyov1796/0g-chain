@@ -1,0 +1,66 @@
+package testutil
+
+import (
+	"strings"
+
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/0glabs/0g-chain/app"
+	"github.com/0glabs/0g-chain/chaincfg"
+	"github.com/0glabs/0g-chain/x/wrapped-a0gi-base/keeper"
+	"github.com/0glabs/0g-chain/x/wrapped-a0gi-base/types"
+	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/evmos/ethermint/crypto/ethsecp256k1"
+)
+
+// Suite implements a test suite for the module integration tests
+type Suite struct {
+	suite.Suite
+
+	Keeper        keeper.Keeper
+	StakingKeeper *stakingkeeper.Keeper
+	GovKeeper     govkeeper.Keeper
+	App           app.TestApp
+	Ctx           sdk.Context
+	QueryClient   types.QueryClient
+	Addresses     []sdk.AccAddress
+}
+
+// SetupTest instantiates a new app, keepers, and sets suite state
+func (suite *Suite) SetupTest() {
+	chaincfg.SetSDKConfig()
+	suite.App = app.NewTestApp()
+	suite.App.InitializeFromGenesisStates()
+	suite.Keeper = suite.App.GetWrappedA0GIBaseKeeper()
+	suite.GovKeeper = suite.App.GetGovKeeper()
+	suite.StakingKeeper = suite.App.GetStakingKeeper()
+
+	// make block header
+	privkey, _ := ethsecp256k1.GenerateKey()
+	consAddress := sdk.ConsAddress(privkey.PubKey().Address())
+	key, err := privkey.ToECDSA()
+	suite.Assert().NoError(err)
+	hexAddr := strings.ToLower(crypto.PubkeyToAddress(key.PublicKey).Hex()[2:])
+	valAddr, err := sdk.ValAddressFromHex(hexAddr)
+	suite.Assert().NoError(err)
+	suite.Ctx = suite.App.NewContext(true, tmproto.Header{Height: 1, ChainID: app.TestChainId, ProposerAddress: consAddress})
+	newValidator, err := stakingtypes.NewValidator(valAddr, privkey.PubKey(), stakingtypes.Description{})
+	suite.Assert().NoError(err)
+	err = suite.StakingKeeper.SetValidatorByConsAddr(suite.Ctx, newValidator)
+	suite.Assert().NoError(err)
+	suite.StakingKeeper.SetValidator(suite.Ctx, newValidator)
+
+	_, accAddresses := app.GeneratePrivKeyAddressPairs(10)
+	suite.Addresses = accAddresses
+
+	// Set query client
+	queryHelper := suite.App.NewQueryServerTestHelper(suite.Ctx)
+	queryHandler := suite.Keeper
+	types.RegisterQueryServer(queryHelper, queryHandler)
+	suite.QueryClient = types.NewQueryClient(queryHelper)
+}

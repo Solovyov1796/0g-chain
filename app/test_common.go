@@ -49,6 +49,7 @@ import (
 	issuancekeeper "github.com/0glabs/0g-chain/x/issuance/keeper"
 	precisebankkeeper "github.com/0glabs/0g-chain/x/precisebank/keeper"
 	pricefeedkeeper "github.com/0glabs/0g-chain/x/pricefeed/keeper"
+	wrappeda0gibasekeeper "github.com/0glabs/0g-chain/x/wrapped-a0gi-base/keeper"
 )
 
 var (
@@ -118,6 +119,9 @@ func (tApp TestApp) GetEvmKeeper() *evmkeeper.Keeper                { return tAp
 func (tApp TestApp) GetFeeMarketKeeper() feemarketkeeper.Keeper     { return tApp.feeMarketKeeper }
 func (tApp TestApp) GetDASignersKeeper() dasignerskeeper.Keeper     { return tApp.dasignersKeeper }
 func (tApp TestApp) GetPrecisebankKeeper() precisebankkeeper.Keeper { return tApp.precisebankKeeper }
+func (tApp TestApp) GetWrappedA0GIBaseKeeper() wrappeda0gibasekeeper.Keeper {
+	return tApp.wrappeda0gibaseKeeper
+}
 
 func (tApp TestApp) GetKVStoreKey(key string) *storetypes.KVStoreKey {
 	return tApp.keys[key]

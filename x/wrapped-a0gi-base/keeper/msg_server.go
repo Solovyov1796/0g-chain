@@ -18,10 +18,6 @@ var _ types.MsgServer = &Keeper{}
 func (k Keeper) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.MsgBurnResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	minter := common.BytesToAddress(msg.Minter)
-	cap, err := k.getMinterCap(ctx, minter)
-	if err != nil {
-		return nil, err
-	}
 	supply, err := k.getMinterSupply(ctx, minter)
 	if err != nil {
 		return nil, err
@@ -29,15 +25,15 @@ func (k Keeper) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.MsgBurnR
 	amount := new(big.Int).SetBytes(msg.Amount)
 	// check & update mint supply
 	supply.Sub(supply, amount)
-	if supply.Cmp(cap) > 0 {
-		return nil, types.ErrInsufficientMintCap
-	}
-	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
-		return nil, err
+	if supply.Cmp(big.NewInt(0)) < 0 {
+		return nil, types.ErrInsufficientMintSupply
 	}
 	// burn
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
 	if err = k.pbkeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
+		return nil, err
+	}
+	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
 		return nil, err
 	}
 	return &types.MsgBurnResponse{}, nil
@@ -61,12 +57,12 @@ func (k Keeper) Mint(goCtx context.Context, msg *types.MsgMint) (*types.MsgMintR
 	if supply.Cmp(cap) > 0 {
 		return nil, types.ErrInsufficientMintCap
 	}
-	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
-		return nil, err
-	}
 	// mint
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
 	if err = k.pbkeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
+		return nil, err
+	}
+	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
 		return nil, err
 	}
 	return &types.MsgMintResponse{}, nil
