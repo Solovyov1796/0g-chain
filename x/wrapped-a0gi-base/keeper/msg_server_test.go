@@ -106,7 +106,7 @@ func (s *MsgServerTestSuite) TestSetMinterCap() {
 	}
 	s.Run("invalid authority", func() {
 		s.SetupTest()
-		_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+		_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 			Authority: s.Addresses[0].String(),
 			Minter:    common.HexToAddress("0x0000000000000000000000000000000000000000").Bytes(),
 			Cap:       big.NewInt(600000).Bytes(),
@@ -121,7 +121,7 @@ func (s *MsgServerTestSuite) TestSetMinterCap() {
 
 			c := make(map[common.Address]*big.Int)
 			for _, cap := range tc.caps {
-				_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+				_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 					Authority: govAccAddr,
 					Minter:    cap.account.Bytes(),
 					Cap:       cap.cap.Bytes(),
@@ -162,14 +162,14 @@ func (s *MsgServerTestSuite) TestSetMintBurn() {
 	minter2 := common.HexToAddress("0x0000000000000000000000000000000000000002")
 
 	// set mint cap of minter 1 to 8 a0gi
-	_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+	_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 		Authority: govAccAddr,
 		Minter:    minter1.Bytes(),
 		Cap:       big.NewInt(8e18).Bytes(),
 	})
 	s.Require().NoError(err)
 	// set mint cap of minter 2 to 5 a0gi
-	_, err = s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+	_, err = s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 		Authority: govAccAddr,
 		Minter:    minter2.Bytes(),
 		Cap:       big.NewInt(5e18).Bytes(),

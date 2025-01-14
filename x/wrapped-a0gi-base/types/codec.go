@@ -32,7 +32,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
 		&MsgSetWA0GI{},
-		&MsgSetMintCap{},
+		&MsgSetMinterCap{},
 		&MsgMint{},
 		&MsgBurn{},
 	)

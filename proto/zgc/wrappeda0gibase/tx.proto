@@ -11,7 +11,7 @@ option (gogoproto.goproto_getters_all) = false;
 // Msg defines the wrapped a0gi base Msg service
 service Msg {
   rpc SetWA0GI(MsgSetWA0GI) returns (MsgSetWA0GIResponse);
-  rpc SetMinterCap(MsgSetMintCap) returns (MsgSetMintCapResponse);
+  rpc SetMinterCap(MsgSetMinterCap) returns (MsgSetMinterCapResponse);
   rpc Mint(MsgMint) returns (MsgMintResponse);
   rpc Burn(MsgBurn) returns (MsgBurnResponse);
 }
@@ -23,13 +23,13 @@ message MsgSetWA0GI {
 
 message MsgSetWA0GIResponse {}
 
-message MsgSetMintCap {
+message MsgSetMinterCap {
   string authority = 1;
   bytes minter = 2;
   bytes cap = 3; // big endian
 }
 
-message MsgSetMintCapResponse {}
+message MsgSetMinterCapResponse {}
 
 message MsgMint {
   bytes minter = 1;

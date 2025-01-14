@@ -87,7 +87,7 @@ func (s *WrappedA0giBaseTestSuite) TestMint() {
 
 			fmt.Println(s.signerOne.Addr)
 			s.wa0gibasekeeper.SetWA0GIAddress(s.Ctx, s.signerOne.Addr)
-			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 				Authority: govAccAddr,
 				Minter:    s.signerOne.Addr.Bytes(),
 				Cap:       big.NewInt(8e18).Bytes(),
@@ -189,7 +189,7 @@ func (s *WrappedA0giBaseTestSuite) TestBurn() {
 
 			fmt.Println(s.signerOne.Addr)
 			s.wa0gibasekeeper.SetWA0GIAddress(s.Ctx, s.signerOne.Addr)
-			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 				Authority: govAccAddr,
 				Minter:    s.signerOne.Addr.Bytes(),
 				Cap:       big.NewInt(8e18).Bytes(),

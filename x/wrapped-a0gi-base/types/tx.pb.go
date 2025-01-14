@@ -104,24 +104,24 @@ func (m *MsgSetWA0GIResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgSetWA0GIResponse proto.InternalMessageInfo
 
-type MsgSetMintCap struct {
+type MsgSetMinterCap struct {
 	Authority string `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
 	Minter    []byte `protobuf:"bytes,2,opt,name=minter,proto3" json:"minter,omitempty"`
 	Cap       []byte `protobuf:"bytes,3,opt,name=cap,proto3" json:"cap,omitempty"`
 }
 
-func (m *MsgSetMintCap) Reset()         { *m = MsgSetMintCap{} }
-func (m *MsgSetMintCap) String() string { return proto.CompactTextString(m) }
-func (*MsgSetMintCap) ProtoMessage()    {}
-func (*MsgSetMintCap) Descriptor() ([]byte, []int) {
+func (m *MsgSetMinterCap) Reset()         { *m = MsgSetMinterCap{} }
+func (m *MsgSetMinterCap) String() string { return proto.CompactTextString(m) }
+func (*MsgSetMinterCap) ProtoMessage()    {}
+func (*MsgSetMinterCap) Descriptor() ([]byte, []int) {
 	return fileDescriptor_f80bf93a1fc022d3, []int{2}
 }
-func (m *MsgSetMintCap) XXX_Unmarshal(b []byte) error {
+func (m *MsgSetMinterCap) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgSetMintCap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgSetMinterCap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgSetMintCap.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgSetMinterCap.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -131,33 +131,33 @@ func (m *MsgSetMintCap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return b[:n], nil
 	}
 }
-func (m *MsgSetMintCap) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgSetMintCap.Merge(m, src)
+func (m *MsgSetMinterCap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgSetMinterCap.Merge(m, src)
 }
-func (m *MsgSetMintCap) XXX_Size() int {
+func (m *MsgSetMinterCap) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgSetMintCap) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgSetMintCap.DiscardUnknown(m)
+func (m *MsgSetMinterCap) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgSetMinterCap.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgSetMintCap proto.InternalMessageInfo
+var xxx_messageInfo_MsgSetMinterCap proto.InternalMessageInfo
 
-type MsgSetMintCapResponse struct {
+type MsgSetMinterCapResponse struct {
 }
 
-func (m *MsgSetMintCapResponse) Reset()         { *m = MsgSetMintCapResponse{} }
-func (m *MsgSetMintCapResponse) String() string { return proto.CompactTextString(m) }
-func (*MsgSetMintCapResponse) ProtoMessage()    {}
-func (*MsgSetMintCapResponse) Descriptor() ([]byte, []int) {
+func (m *MsgSetMinterCapResponse) Reset()         { *m = MsgSetMinterCapResponse{} }
+func (m *MsgSetMinterCapResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgSetMinterCapResponse) ProtoMessage()    {}
+func (*MsgSetMinterCapResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_f80bf93a1fc022d3, []int{3}
 }
-func (m *MsgSetMintCapResponse) XXX_Unmarshal(b []byte) error {
+func (m *MsgSetMinterCapResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MsgSetMintCapResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MsgSetMinterCapResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MsgSetMintCapResponse.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MsgSetMinterCapResponse.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -167,17 +167,17 @@ func (m *MsgSetMintCapResponse) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return b[:n], nil
 	}
 }
-func (m *MsgSetMintCapResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgSetMintCapResponse.Merge(m, src)
+func (m *MsgSetMinterCapResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgSetMinterCapResponse.Merge(m, src)
 }
-func (m *MsgSetMintCapResponse) XXX_Size() int {
+func (m *MsgSetMinterCapResponse) XXX_Size() int {
 	return m.Size()
 }
-func (m *MsgSetMintCapResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgSetMintCapResponse.DiscardUnknown(m)
+func (m *MsgSetMinterCapResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgSetMinterCapResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MsgSetMintCapResponse proto.InternalMessageInfo
+var xxx_messageInfo_MsgSetMinterCapResponse proto.InternalMessageInfo
 
 type MsgMint struct {
 	Minter []byte `protobuf:"bytes,1,opt,name=minter,proto3" json:"minter,omitempty"`
@@ -330,8 +330,8 @@ var xxx_messageInfo_MsgBurnResponse proto.InternalMessageInfo
 func init() {
 	proto.RegisterType((*MsgSetWA0GI)(nil), "zgc.wrappeda0gibase.MsgSetWA0GI")
 	proto.RegisterType((*MsgSetWA0GIResponse)(nil), "zgc.wrappeda0gibase.MsgSetWA0GIResponse")
-	proto.RegisterType((*MsgSetMintCap)(nil), "zgc.wrappeda0gibase.MsgSetMintCap")
-	proto.RegisterType((*MsgSetMintCapResponse)(nil), "zgc.wrappeda0gibase.MsgSetMintCapResponse")
+	proto.RegisterType((*MsgSetMinterCap)(nil), "zgc.wrappeda0gibase.MsgSetMinterCap")
+	proto.RegisterType((*MsgSetMinterCapResponse)(nil), "zgc.wrappeda0gibase.MsgSetMinterCapResponse")
 	proto.RegisterType((*MsgMint)(nil), "zgc.wrappeda0gibase.MsgMint")
 	proto.RegisterType((*MsgMintResponse)(nil), "zgc.wrappeda0gibase.MsgMintResponse")
 	proto.RegisterType((*MsgBurn)(nil), "zgc.wrappeda0gibase.MsgBurn")
@@ -341,34 +341,34 @@ func init() {
 func init() { proto.RegisterFile("zgc/wrappeda0gibase/tx.proto", fileDescriptor_f80bf93a1fc022d3) }
 
 var fileDescriptor_f80bf93a1fc022d3 = []byte{
-	// 421 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x93, 0x4f, 0xab, 0xd3, 0x40,
-	0x14, 0xc5, 0x93, 0x57, 0xe9, 0xf3, 0x5d, 0x2b, 0x6a, 0x6a, 0x6b, 0x1a, 0x4a, 0x28, 0xc1, 0x45,
-	0x11, 0x9a, 0x09, 0xea, 0xc6, 0xa5, 0x15, 0x11, 0x85, 0x6c, 0x22, 0x58, 0x70, 0xa1, 0x4c, 0xd2,
-	0x71, 0x1a, 0x68, 0x32, 0x21, 0x33, 0xc1, 0xb6, 0x9f, 0xc2, 0x8f, 0xd5, 0x65, 0x37, 0x82, 0x4b,
-	0x6d, 0xbf, 0x88, 0x4c, 0xfe, 0xd4, 0xb4, 0xd8, 0x16, 0xde, 0x2e, 0xe7, 0x9c, 0x7b, 0x7f, 0x03,
-	0x27, 0x5c, 0xe8, 0xaf, 0x68, 0x80, 0xbe, 0xa7, 0x38, 0x49, 0xc8, 0x14, 0x3b, 0x34, 0xf4, 0x31,
-	0x27, 0x48, 0x2c, 0xec, 0x24, 0x65, 0x82, 0x69, 0xed, 0x15, 0x0d, 0xec, 0xa3, 0xd4, 0xe8, 0x05,
-	0x8c, 0x47, 0x8c, 0x7f, 0xcd, 0x47, 0x50, 0x21, 0x8a, 0x79, 0xe3, 0x31, 0x65, 0x94, 0x15, 0xbe,
-	0xfc, 0x2a, 0xdd, 0x1e, 0x65, 0x8c, 0xce, 0x09, 0xca, 0x95, 0x9f, 0x7d, 0x43, 0x38, 0x5e, 0x16,
-	0x91, 0xf5, 0x16, 0xee, 0xb9, 0x9c, 0x7e, 0x24, 0x62, 0xf2, 0xda, 0x79, 0xf7, 0x5e, 0xeb, 0xc3,
-	0x0d, 0xce, 0xc4, 0x8c, 0xa5, 0xa1, 0x58, 0xea, 0xea, 0x40, 0x1d, 0xde, 0x78, 0xff, 0x0c, 0x4d,
-	0x87, 0x6b, 0x3c, 0x9d, 0xa6, 0x84, 0x73, 0xfd, 0x6a, 0xa0, 0x0e, 0x5b, 0x5e, 0x25, 0xad, 0x0e,
-	0xb4, 0x6b, 0x18, 0x8f, 0xf0, 0x84, 0xc5, 0x9c, 0x58, 0x13, 0xb8, 0x5f, 0xd8, 0x6e, 0x18, 0x8b,
-	0x37, 0x38, 0xb9, 0xc0, 0xef, 0x42, 0x33, 0x0a, 0x63, 0x41, 0xd2, 0x12, 0x5f, 0x2a, 0xed, 0x21,
-	0x34, 0x02, 0x9c, 0xe8, 0x8d, 0xdc, 0x94, 0x9f, 0xd6, 0x13, 0xe8, 0x1c, 0x80, 0xf7, 0x2f, 0xbe,
-	0x82, 0x6b, 0x97, 0x53, 0xe9, 0xd6, 0x68, 0xea, 0x01, 0xad, 0x0b, 0x4d, 0x1c, 0xb1, 0x2c, 0x16,
-	0xd5, 0x2b, 0x85, 0xb2, 0x1e, 0xc1, 0x83, 0x72, 0xf5, 0x88, 0x36, 0xce, 0xd2, 0xf8, 0x96, 0x34,
-	0xb9, 0x5a, 0xd1, 0x9e, 0xff, 0xbc, 0x82, 0x86, 0xcb, 0xa9, 0xf6, 0x09, 0xee, 0xee, 0x0b, 0x1f,
-	0xd8, 0xff, 0xf9, 0xc3, 0x76, 0xad, 0x4b, 0x63, 0x78, 0x69, 0xa2, 0xe2, 0x6b, 0x5f, 0xa0, 0x55,
-	0x36, 0x42, 0x52, 0x59, 0xb6, 0x75, 0x66, 0xb3, 0xec, 0xcd, 0x78, 0x76, 0x79, 0x66, 0xcf, 0xff,
-	0x00, 0x77, 0xf2, 0x62, 0xfb, 0xa7, 0x76, 0x64, 0x6a, 0x3c, 0x3d, 0x97, 0xd6, 0x59, 0x79, 0xad,
-	0x27, 0x59, 0x32, 0x3d, 0xcd, 0xaa, 0xf7, 0x3a, 0xf6, 0xd6, 0x7f, 0x4c, 0x65, 0xbd, 0x35, 0xd5,
-	0xcd, 0xd6, 0x54, 0x7f, 0x6f, 0x4d, 0xf5, 0xc7, 0xce, 0x54, 0x36, 0x3b, 0x53, 0xf9, 0xb5, 0x33,
-	0x95, 0xcf, 0x2f, 0x69, 0x28, 0x66, 0x99, 0x6f, 0x07, 0x2c, 0x42, 0x0e, 0x9d, 0x63, 0x9f, 0x23,
-	0x87, 0x8e, 0x82, 0x19, 0x0e, 0x63, 0xb4, 0xa8, 0x2e, 0x6f, 0x24, 0xe1, 0xa3, 0xe2, 0xf6, 0x96,
-	0x09, 0xe1, 0x7e, 0x33, 0x3f, 0x8f, 0x17, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x6f, 0x43, 0x23,
-	0x4d, 0x9f, 0x03, 0x00, 0x00,
+	// 419 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x93, 0xc1, 0xae, 0xd2, 0x40,
+	0x14, 0x86, 0x5b, 0x30, 0x20, 0x23, 0x89, 0x5a, 0x14, 0x4b, 0x43, 0x1a, 0xd2, 0xb0, 0x60, 0x21,
+	0x9d, 0x46, 0xdd, 0xb8, 0x14, 0x63, 0x8c, 0x26, 0xdd, 0xd4, 0x44, 0xa3, 0x1b, 0x33, 0x2d, 0xe3,
+	0xd0, 0x84, 0x76, 0x9a, 0xce, 0x34, 0x02, 0x4f, 0xe1, 0x63, 0xb1, 0x64, 0xa9, 0x3b, 0x2f, 0xbc,
+	0xc8, 0xcd, 0x4c, 0x69, 0x6f, 0x21, 0x17, 0xb8, 0xb9, 0xbb, 0x39, 0xff, 0xf9, 0xcf, 0x77, 0x9a,
+	0xbf, 0x39, 0xa0, 0xbf, 0x22, 0x01, 0xfc, 0x9d, 0xa2, 0x24, 0xc1, 0x53, 0xe4, 0x90, 0xd0, 0x47,
+	0x0c, 0x43, 0xbe, 0xb0, 0x93, 0x94, 0x72, 0xaa, 0x75, 0x56, 0x24, 0xb0, 0x8f, 0xba, 0x46, 0x2f,
+	0xa0, 0x2c, 0xa2, 0xec, 0xa7, 0xb4, 0xc0, 0xbc, 0xc8, 0xfd, 0xc6, 0x33, 0x42, 0x09, 0xcd, 0x75,
+	0xf1, 0xda, 0xab, 0x3d, 0x42, 0x29, 0x99, 0x63, 0x28, 0x2b, 0x3f, 0xfb, 0x05, 0x51, 0xbc, 0xcc,
+	0x5b, 0xd6, 0x07, 0xf0, 0xc8, 0x65, 0xe4, 0x0b, 0xe6, 0xdf, 0xde, 0x39, 0x1f, 0x3f, 0x69, 0x7d,
+	0xd0, 0x42, 0x19, 0x9f, 0xd1, 0x34, 0xe4, 0x4b, 0x5d, 0x1d, 0xa8, 0xa3, 0x96, 0x77, 0x23, 0x68,
+	0x3a, 0x68, 0xa2, 0xe9, 0x34, 0xc5, 0x8c, 0xe9, 0xb5, 0x81, 0x3a, 0x6a, 0x7b, 0x45, 0x69, 0x3d,
+	0x07, 0x9d, 0x0a, 0xc6, 0xc3, 0x2c, 0xa1, 0x31, 0xc3, 0xd6, 0x77, 0xf0, 0x38, 0x97, 0xdd, 0x30,
+	0xe6, 0x38, 0x7d, 0x8f, 0x92, 0x0b, 0x1b, 0xba, 0xa0, 0x11, 0x49, 0xeb, 0x7e, 0xc1, 0xbe, 0xd2,
+	0x9e, 0x80, 0x7a, 0x80, 0x12, 0xbd, 0x2e, 0x45, 0xf1, 0xb4, 0x7a, 0xe0, 0xc5, 0x11, 0xba, 0xdc,
+	0xfa, 0x16, 0x34, 0x5d, 0x46, 0x84, 0x5e, 0xe1, 0xa9, 0x07, 0xbc, 0x2e, 0x68, 0xa0, 0x88, 0x66,
+	0x31, 0x2f, 0xf6, 0xe4, 0x95, 0xf5, 0x54, 0x7e, 0xb0, 0x18, 0x3d, 0xa2, 0x4d, 0xb2, 0x34, 0xbe,
+	0x27, 0x4d, 0x8c, 0x16, 0xb4, 0x57, 0xff, 0x6a, 0xa0, 0xee, 0x32, 0xa2, 0x7d, 0x05, 0x0f, 0xcb,
+	0xd0, 0x07, 0xf6, 0x2d, 0x7f, 0xd9, 0xae, 0xe4, 0x69, 0x8c, 0x2e, 0x39, 0x0a, 0xbe, 0xe6, 0x83,
+	0xf6, 0x41, 0xdc, 0xc3, 0x33, 0x93, 0xa5, 0xcb, 0x78, 0x79, 0x17, 0x57, 0xb9, 0xe3, 0x33, 0x78,
+	0x20, 0xc3, 0xed, 0x9f, 0x9a, 0x12, 0x5d, 0x63, 0x78, 0xae, 0x5b, 0x65, 0xc9, 0x68, 0x4f, 0xb2,
+	0x44, 0xf7, 0x34, 0xab, 0x9a, 0xed, 0xc4, 0x5b, 0x5f, 0x99, 0xca, 0x7a, 0x6b, 0xaa, 0x9b, 0xad,
+	0xa9, 0xfe, 0xdf, 0x9a, 0xea, 0x9f, 0x9d, 0xa9, 0x6c, 0x76, 0xa6, 0xf2, 0x77, 0x67, 0x2a, 0x3f,
+	0xde, 0x90, 0x90, 0xcf, 0x32, 0xdf, 0x0e, 0x68, 0x04, 0x1d, 0x32, 0x47, 0x3e, 0x83, 0x0e, 0x19,
+	0x07, 0x33, 0x14, 0xc6, 0x70, 0x51, 0x5c, 0xe0, 0x58, 0xc0, 0xc7, 0xf9, 0x0d, 0x2e, 0x13, 0xcc,
+	0xfc, 0x86, 0x3c, 0x93, 0xd7, 0xd7, 0x01, 0x00, 0x00, 0xff, 0xff, 0xa7, 0x07, 0x50, 0x07, 0xa7,
+	0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -384,7 +384,7 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
 	SetWA0GI(ctx context.Context, in *MsgSetWA0GI, opts ...grpc.CallOption) (*MsgSetWA0GIResponse, error)
-	SetMinterCap(ctx context.Context, in *MsgSetMintCap, opts ...grpc.CallOption) (*MsgSetMintCapResponse, error)
+	SetMinterCap(ctx context.Context, in *MsgSetMinterCap, opts ...grpc.CallOption) (*MsgSetMinterCapResponse, error)
 	Mint(ctx context.Context, in *MsgMint, opts ...grpc.CallOption) (*MsgMintResponse, error)
 	Burn(ctx context.Context, in *MsgBurn, opts ...grpc.CallOption) (*MsgBurnResponse, error)
 }
@@ -406,8 +406,8 @@ func (c *msgClient) SetWA0GI(ctx context.Context, in *MsgSetWA0GI, opts ...grpc.
 	return out, nil
 }
 
-func (c *msgClient) SetMinterCap(ctx context.Context, in *MsgSetMintCap, opts ...grpc.CallOption) (*MsgSetMintCapResponse, error) {
-	out := new(MsgSetMintCapResponse)
+func (c *msgClient) SetMinterCap(ctx context.Context, in *MsgSetMinterCap, opts ...grpc.CallOption) (*MsgSetMinterCapResponse, error) {
+	out := new(MsgSetMinterCapResponse)
 	err := c.cc.Invoke(ctx, "/zgc.wrappeda0gibase.Msg/SetMinterCap", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -436,7 +436,7 @@ func (c *msgClient) Burn(ctx context.Context, in *MsgBurn, opts ...grpc.CallOpti
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	SetWA0GI(context.Context, *MsgSetWA0GI) (*MsgSetWA0GIResponse, error)
-	SetMinterCap(context.Context, *MsgSetMintCap) (*MsgSetMintCapResponse, error)
+	SetMinterCap(context.Context, *MsgSetMinterCap) (*MsgSetMinterCapResponse, error)
 	Mint(context.Context, *MsgMint) (*MsgMintResponse, error)
 	Burn(context.Context, *MsgBurn) (*MsgBurnResponse, error)
 }
@@ -448,7 +448,7 @@ type UnimplementedMsgServer struct {
 func (*UnimplementedMsgServer) SetWA0GI(ctx context.Context, req *MsgSetWA0GI) (*MsgSetWA0GIResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetWA0GI not implemented")
 }
-func (*UnimplementedMsgServer) SetMinterCap(ctx context.Context, req *MsgSetMintCap) (*MsgSetMintCapResponse, error) {
+func (*UnimplementedMsgServer) SetMinterCap(ctx context.Context, req *MsgSetMinterCap) (*MsgSetMinterCapResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetMinterCap not implemented")
 }
 func (*UnimplementedMsgServer) Mint(ctx context.Context, req *MsgMint) (*MsgMintResponse, error) {
@@ -481,7 +481,7 @@ func _Msg_SetWA0GI_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 func _Msg_SetMinterCap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MsgSetMintCap)
+	in := new(MsgSetMinterCap)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -493,7 +493,7 @@ func _Msg_SetMinterCap_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: "/zgc.wrappeda0gibase.Msg/SetMinterCap",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MsgServer).SetMinterCap(ctx, req.(*MsgSetMintCap))
+		return srv.(MsgServer).SetMinterCap(ctx, req.(*MsgSetMinterCap))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -619,7 +619,7 @@ func (m *MsgSetWA0GIResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MsgSetMintCap) Marshal() (dAtA []byte, err error) {
+func (m *MsgSetMinterCap) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -629,12 +629,12 @@ func (m *MsgSetMintCap) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgSetMintCap) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgSetMinterCap) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgSetMintCap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgSetMinterCap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -663,7 +663,7 @@ func (m *MsgSetMintCap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MsgSetMintCapResponse) Marshal() (dAtA []byte, err error) {
+func (m *MsgSetMinterCapResponse) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -673,12 +673,12 @@ func (m *MsgSetMintCapResponse) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MsgSetMintCapResponse) MarshalTo(dAtA []byte) (int, error) {
+func (m *MsgSetMinterCapResponse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MsgSetMintCapResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MsgSetMinterCapResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -843,7 +843,7 @@ func (m *MsgSetWA0GIResponse) Size() (n int) {
 	return n
 }
 
-func (m *MsgSetMintCap) Size() (n int) {
+func (m *MsgSetMinterCap) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -864,7 +864,7 @@ func (m *MsgSetMintCap) Size() (n int) {
 	return n
 }
 
-func (m *MsgSetMintCapResponse) Size() (n int) {
+func (m *MsgSetMinterCapResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1097,7 +1097,7 @@ func (m *MsgSetWA0GIResponse) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MsgSetMintCap) Unmarshal(dAtA []byte) error {
+func (m *MsgSetMinterCap) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1120,10 +1120,10 @@ func (m *MsgSetMintCap) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgSetMintCap: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgSetMinterCap: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgSetMintCap: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgSetMinterCap: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1247,7 +1247,7 @@ func (m *MsgSetMintCap) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MsgSetMintCapResponse) Unmarshal(dAtA []byte) error {
+func (m *MsgSetMinterCapResponse) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1270,10 +1270,10 @@ func (m *MsgSetMintCapResponse) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MsgSetMintCapResponse: wiretype end group for non-group")
+			return fmt.Errorf("proto: MsgSetMinterCapResponse: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgSetMintCapResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MsgSetMinterCapResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

@@ -69,7 +69,7 @@ func (k Keeper) Mint(goCtx context.Context, msg *types.MsgMint) (*types.MsgMintR
 }
 
 // SetMinterCap implements types.MsgServer.
-func (k Keeper) SetMinterCap(goCtx context.Context, msg *types.MsgSetMintCap) (*types.MsgSetMintCapResponse, error) {
+func (k Keeper) SetMinterCap(goCtx context.Context, msg *types.MsgSetMinterCap) (*types.MsgSetMinterCapResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	minter := common.BytesToAddress(msg.Minter)
 	// validate authority
@@ -80,7 +80,7 @@ func (k Keeper) SetMinterCap(goCtx context.Context, msg *types.MsgSetMintCap) (*
 	if err := k.setMinterCap(ctx, minter, new(big.Int).SetBytes(msg.Cap)); err != nil {
 		return nil, err
 	}
-	return &types.MsgSetMintCapResponse{}, nil
+	return &types.MsgSetMinterCapResponse{}, nil
 }
 
 // SetWA0GI implements types.MsgServer.

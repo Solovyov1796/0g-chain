@@ -5,7 +5,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var _, _, _, _ sdk.Msg = &MsgSetWA0GI{}, &MsgSetMintCap{}, &MsgMint{}, &MsgBurn{}
+var _, _, _, _ sdk.Msg = &MsgSetWA0GI{}, &MsgSetMinterCap{}, &MsgMint{}, &MsgBurn{}
 
 func (msg *MsgSetWA0GI) GetSigners() []sdk.AccAddress {
 	addr, _ := sdk.AccAddressFromBech32(msg.Authority)
@@ -24,12 +24,12 @@ func (msg MsgSetWA0GI) GetSignBytes() []byte {
 	return sdk.MustSortJSON(AminoCdc.MustMarshalJSON(&msg))
 }
 
-func (msg *MsgSetMintCap) GetSigners() []sdk.AccAddress {
+func (msg *MsgSetMinterCap) GetSigners() []sdk.AccAddress {
 	addr, _ := sdk.AccAddressFromBech32(msg.Authority)
 	return []sdk.AccAddress{addr}
 }
 
-func (msg *MsgSetMintCap) ValidateBasic() error {
+func (msg *MsgSetMinterCap) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return errorsmod.Wrap(err, "authority")
 	}
@@ -37,7 +37,7 @@ func (msg *MsgSetMintCap) ValidateBasic() error {
 	return nil
 }
 
-func (msg MsgSetMintCap) GetSignBytes() []byte {
+func (msg MsgSetMinterCap) GetSignBytes() []byte {
 	return sdk.MustSortJSON(AminoCdc.MustMarshalJSON(&msg))
 }
 

@@ -121,7 +121,7 @@ func (s *WrappedA0giBaseTestSuite) TestMinterSupply() {
 		s.Run(tc.name, func() {
 			s.SetupTest()
 
-			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMintCap{
+			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
 				Authority: govAccAddr,
 				Minter:    s.signerOne.Addr.Bytes(),
 				Cap:       big.NewInt(8e18).Bytes(),
