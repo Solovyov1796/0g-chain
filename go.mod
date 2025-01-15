@@ -9,6 +9,7 @@ require (
 	cosmossdk.io/simapp v0.0.0-20231127212628-044ff4d8c015
 	github.com/Kava-Labs/opendb v0.0.0-20240719173129-a2f11f6d7e51
 	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/cockroachdb/errors v1.11.1
 	github.com/cometbft/cometbft v0.37.9
 	github.com/cometbft/cometbft-db v0.9.1
 	github.com/coniks-sys/coniks-go v0.0.0-20180722014011-11acf4819b71
@@ -28,6 +29,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/huandu/skiplist v1.2.0
 	github.com/linxGnu/grocksdb v1.8.13
 	github.com/pelletier/go-toml/v2 v2.1.0
 	github.com/shopspring/decimal v1.4.0
@@ -76,7 +78,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cockroachdb/apd/v2 v2.0.2 // indirect
-	github.com/cockroachdb/errors v1.11.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/pebble v1.1.0 // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
@@ -146,7 +147,6 @@ require (
 	github.com/hdevalence/ed25519consensus v0.1.0 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.1 // indirect
-	github.com/huandu/skiplist v1.2.0 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/iancoleman/orderedmap v0.2.0 // indirect
 	github.com/improbable-eng/grpc-web v0.15.0 // indirect
@@ -242,7 +242,7 @@ replace (
 	github.com/cometbft/cometbft-db => github.com/kava-labs/cometbft-db v0.9.1-kava.2
 	// Use cosmos-sdk fork with backported fix for unsafe-reset-all, staking transfer events, and custom tally handler support
 	// github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.46.11-kava.3
-	github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.47.10-0glabs.9
+	github.com/cosmos/cosmos-sdk => github.com/0glabs/cosmos-sdk v0.47.10-0glabs.10
 	github.com/cosmos/iavl => github.com/kava-labs/iavl v1.2.0-kava.1
 	// See https://github.com/cosmos/cosmos-sdk/pull/13093
 	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.2
