@@ -19,7 +19,7 @@ var (
 	MinterSupplyKeyPrefix = []byte{0x01}
 
 	// keys
-	WA0GIKey = []byte{0x00}
+	WA0GIKey = []byte{0x02}
 )
 
 func GetMinterKeyFromAccount(account string) ([]byte, error) {
