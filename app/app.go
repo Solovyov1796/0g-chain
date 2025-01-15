@@ -376,7 +376,6 @@ func NewApp(
 	feemarketSubspace := app.paramsKeeper.Subspace(feemarkettypes.ModuleName)
 	evmSubspace := app.paramsKeeper.Subspace(evmtypes.ModuleName)
 	evmutilSubspace := app.paramsKeeper.Subspace(evmutiltypes.ModuleName)
-	mintSubspace := app.paramsKeeper.Subspace(minttypes.ModuleName)
 
 	// set the BaseApp's parameter store
 	app.consensusParamsKeeper = consensusparamkeeper.NewKeeper(appCodec, keys[consensusparamtypes.StoreKey], govAuthAddrStr)
@@ -613,7 +612,6 @@ func NewApp(
 		app.accountKeeper,
 		app.bankKeeper,
 		authtypes.FeeCollectorName,
-		govAuthAddrStr,
 	)
 
 	// create committee keeper with router
@@ -704,7 +702,7 @@ func NewApp(
 		committee.NewAppModule(app.committeeKeeper, app.accountKeeper),
 		evmutil.NewAppModule(app.evmutilKeeper, app.bankKeeper, app.accountKeeper),
 		// nil InflationCalculationFn, use SDK's default inflation function
-		mint.NewAppModule(appCodec, app.mintKeeper, app.accountKeeper, nil, mintSubspace),
+		mint.NewAppModule(appCodec, app.mintKeeper, app.accountKeeper),
 		precisebank.NewAppModule(app.precisebankKeeper, app.bankKeeper, app.accountKeeper),
 		council.NewAppModule(app.CouncilKeeper),
 		ibcwasm.NewAppModule(app.ibcWasmClientKeeper),
