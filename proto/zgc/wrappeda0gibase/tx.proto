@@ -1,0 +1,46 @@
+syntax = "proto3";
+package zgc.wrappeda0gibase;
+
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/0glabs/0g-chain/x/wrapped-a0gi-base/types";
+option (gogoproto.goproto_getters_all) = false;
+
+// Msg defines the wrapped a0gi base Msg service
+service Msg {
+  rpc SetWA0GI(MsgSetWA0GI) returns (MsgSetWA0GIResponse);
+  rpc SetMinterCap(MsgSetMinterCap) returns (MsgSetMinterCapResponse);
+  rpc Mint(MsgMint) returns (MsgMintResponse);
+  rpc Burn(MsgBurn) returns (MsgBurnResponse);
+}
+
+message MsgSetWA0GI {
+  string authority = 1;
+  bytes address = 2;
+}
+
+message MsgSetWA0GIResponse {}
+
+message MsgSetMinterCap {
+  string authority = 1;
+  bytes minter = 2;
+  bytes cap = 3; // big endian
+}
+
+message MsgSetMinterCapResponse {}
+
+message MsgMint {
+  bytes minter = 1;
+  bytes amount = 2; // big endian
+}
+
+message MsgMintResponse {}
+
+message MsgBurn {
+  bytes minter = 1;
+  bytes amount = 2; // big endian
+}
+
+message MsgBurnResponse {}

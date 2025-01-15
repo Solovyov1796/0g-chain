@@ -1,0 +1,15 @@
+syntax = "proto3";
+package zgc.wrappeda0gibase;
+
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/0glabs/0g-chain/x/wrapped-a0gi-base/types";
+
+// GenesisState defines the wrapped a0gi base module's genesis state.
+message GenesisState {
+  // address of wrapped a0gi contract
+  bytes wrapped_a0gi_address = 1;
+}
