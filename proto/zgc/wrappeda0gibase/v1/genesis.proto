@@ -1,5 +1,5 @@
 syntax = "proto3";
-package zgc.wrappeda0gibase;
+package zgc.wrappeda0gibase.v1;
 
 import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";

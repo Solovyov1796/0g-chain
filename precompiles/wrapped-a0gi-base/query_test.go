@@ -85,9 +85,10 @@ func (s *WrappedA0giBaseTestSuite) TestMinterSupply() {
 			func(data []byte) {
 				out, err := s.abi.Methods[method].Outputs.Unpack(data)
 				s.Require().NoError(err, "failed to unpack output")
-				wa0gi := out[0].(wrappeda0gibaseprecompile.Supply)
-				s.Require().Equal(wa0gi.Cap, big.NewInt(8e18))
-				s.Require().Equal(wa0gi.Total, big.NewInt(1e18))
+				supply := out[0].(wrappeda0gibaseprecompile.Supply)
+				s.Require().Equal(supply.Cap, big.NewInt(8e18))
+				s.Require().Equal(supply.InitialSupply, big.NewInt(4e18))
+				s.Require().Equal(supply.Supply, big.NewInt(4e18+1e18))
 				// fmt.Println(wa0gi)
 			},
 			100000,
@@ -108,7 +109,8 @@ func (s *WrappedA0giBaseTestSuite) TestMinterSupply() {
 				s.Require().NoError(err, "failed to unpack output")
 				supply := out[0].(wrappeda0gibaseprecompile.Supply)
 				s.Require().Equal(supply.Cap.Bytes(), big.NewInt(0).Bytes())
-				s.Require().Equal(supply.Total.Bytes(), big.NewInt(0).Bytes())
+				s.Require().Equal(supply.InitialSupply.Bytes(), big.NewInt(0).Bytes())
+				s.Require().Equal(supply.Supply.Bytes(), big.NewInt(0).Bytes())
 				// fmt.Println(wa0gi)
 			},
 			100000,
@@ -122,9 +124,10 @@ func (s *WrappedA0giBaseTestSuite) TestMinterSupply() {
 			s.SetupTest()
 
 			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-				Authority: govAccAddr,
-				Minter:    s.signerOne.Addr.Bytes(),
-				Cap:       big.NewInt(8e18).Bytes(),
+				Authority:     govAccAddr,
+				Minter:        s.signerOne.Addr.Bytes(),
+				Cap:           big.NewInt(8e18).Bytes(),
+				InitialSupply: big.NewInt(4e18).Bytes(),
 			})
 
 			s.wa0gibasekeeper.Mint(sdk.WrapSDKContext(s.Ctx), &types.MsgMint{

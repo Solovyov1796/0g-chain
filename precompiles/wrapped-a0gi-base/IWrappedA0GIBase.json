@@ -67,7 +67,12 @@
           },
           {
             "internalType": "uint256",
-            "name": "total",
+            "name": "initialSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "supply",
             "type": "uint256"
           }
         ],

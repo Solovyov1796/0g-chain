@@ -31,8 +31,9 @@ func (w *WrappedA0giBasePrecompile) MinterSupply(ctx sdk.Context, _ *vm.EVM, met
 		return nil, err
 	}
 	supply := Supply{
-		Cap:   new(big.Int).SetBytes(response.Cap),
-		Total: new(big.Int).SetBytes(response.Supply),
+		Cap:           new(big.Int).SetBytes(response.Supply.Cap),
+		InitialSupply: new(big.Int).SetBytes(response.Supply.InitialSupply),
+		Supply:        new(big.Int).SetBytes(response.Supply.Supply),
 	}
 	return method.Outputs.Pack(supply)
 }

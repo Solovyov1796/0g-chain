@@ -15,7 +15,6 @@ const (
 
 var (
 	// prefix
-	MinterCapKeyPrefix    = []byte{0x00}
 	MinterSupplyKeyPrefix = []byte{0x01}
 
 	// keys

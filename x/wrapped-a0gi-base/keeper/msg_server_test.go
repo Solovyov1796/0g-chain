@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -63,43 +62,52 @@ func (s *MsgServerTestSuite) TestSetMinterCap() {
 	testCases := []struct {
 		name string
 		caps []struct {
-			account common.Address
-			cap     *big.Int
+			account       common.Address
+			cap           *big.Int
+			initialSupply *big.Int
 		}
 	}{
 		{
 			name: "success",
 			caps: []struct {
-				account common.Address
-				cap     *big.Int
+				account       common.Address
+				cap           *big.Int
+				initialSupply *big.Int
 			}{
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000000"),
-					cap:     big.NewInt(100000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+					cap:           big.NewInt(100000),
+					initialSupply: big.NewInt(50000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000001"),
-					cap:     big.NewInt(200000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000001"),
+					cap:           big.NewInt(200000),
+					initialSupply: big.NewInt(100000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000002"),
-					cap:     big.NewInt(300000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000002"),
+					cap:           big.NewInt(300000),
+					initialSupply: big.NewInt(150000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000003"),
-					cap:     big.NewInt(400000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000003"),
+					cap:           big.NewInt(400000),
+					initialSupply: big.NewInt(200000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000002"),
-					cap:     big.NewInt(500000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000002"),
+					cap:           big.NewInt(500000),
+					initialSupply: big.NewInt(250000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000001"),
-					cap:     big.NewInt(600000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000001"),
+					cap:           big.NewInt(600000),
+					initialSupply: big.NewInt(300000),
 				},
 				{
-					account: common.HexToAddress("0x0000000000000000000000000000000000000000"),
-					cap:     big.NewInt(700000),
+					account:       common.HexToAddress("0x0000000000000000000000000000000000000000"),
+					cap:           big.NewInt(700000),
+					initialSupply: big.NewInt(350000),
 				},
 			},
 		},
@@ -107,9 +115,10 @@ func (s *MsgServerTestSuite) TestSetMinterCap() {
 	s.Run("invalid authority", func() {
 		s.SetupTest()
 		_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-			Authority: s.Addresses[0].String(),
-			Minter:    common.HexToAddress("0x0000000000000000000000000000000000000000").Bytes(),
-			Cap:       big.NewInt(600000).Bytes(),
+			Authority:     s.Addresses[0].String(),
+			Minter:        common.HexToAddress("0x0000000000000000000000000000000000000000").Bytes(),
+			Cap:           big.NewInt(600000).Bytes(),
+			InitialSupply: big.NewInt(300000).Bytes(),
 		})
 		s.Require().Error(err)
 		s.Require().Contains(err.Error(), "expected gov account as only signer for proposal message")
@@ -119,27 +128,41 @@ func (s *MsgServerTestSuite) TestSetMinterCap() {
 		s.Run(tc.name, func() {
 			s.SetupTest()
 
-			c := make(map[common.Address]*big.Int)
+			c := make(map[common.Address]struct {
+				Cap           *big.Int
+				InitialSupply *big.Int
+			})
 			for _, cap := range tc.caps {
 				_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-					Authority: govAccAddr,
-					Minter:    cap.account.Bytes(),
-					Cap:       cap.cap.Bytes(),
+					Authority:     govAccAddr,
+					Minter:        cap.account.Bytes(),
+					Cap:           cap.cap.Bytes(),
+					InitialSupply: cap.initialSupply.Bytes(),
 				})
 				s.Require().NoError(err)
 				response, err := s.Keeper.MinterSupply(s.Ctx, &types.MinterSupplyRequest{
 					Address: cap.account.Bytes(),
 				})
 				s.Require().NoError(err)
-				s.Require().Equal(new(big.Int).SetBytes(response.Cap), cap.cap)
-				c[cap.account] = cap.cap
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.Cap), cap.cap)
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.InitialSupply), cap.initialSupply)
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.Supply), cap.initialSupply)
+				c[cap.account] = struct {
+					Cap           *big.Int
+					InitialSupply *big.Int
+				}{
+					Cap:           cap.cap,
+					InitialSupply: cap.initialSupply,
+				}
 			}
 			for account, cap := range c {
 				response, err := s.Keeper.MinterSupply(s.Ctx, &types.MinterSupplyRequest{
 					Address: account.Bytes(),
 				})
 				s.Require().NoError(err)
-				s.Require().Equal(new(big.Int).SetBytes(response.Cap), cap)
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.Cap), cap.Cap)
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.InitialSupply), cap.InitialSupply)
+				s.Require().Equal(new(big.Int).SetBytes(response.Supply.Supply), cap.InitialSupply)
 			}
 		})
 	}
@@ -154,8 +177,8 @@ type MintBurn struct {
 
 func (s *MsgServerTestSuite) TestSetMintBurn() {
 	precisebankKeeper := s.App.GetPrecisebankKeeper()
-	accountKeeper := s.App.GetAccountKeeper()
-	moduleAcc := accountKeeper.GetModuleAccount(s.Ctx, types.ModuleName).GetAddress()
+	// accountKeeper := s.App.GetAccountKeeper()
+	// moduleAcc := accountKeeper.GetModuleAccount(s.Ctx, types.ModuleName).GetAddress()
 	govAccAddr := s.GovKeeper.GetGovernanceAccount(s.Ctx).GetAddress().String()
 
 	minter1 := common.HexToAddress("0x0000000000000000000000000000000000000001")
@@ -163,16 +186,18 @@ func (s *MsgServerTestSuite) TestSetMintBurn() {
 
 	// set mint cap of minter 1 to 8 a0gi
 	_, err := s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-		Authority: govAccAddr,
-		Minter:    minter1.Bytes(),
-		Cap:       big.NewInt(8e18).Bytes(),
+		Authority:     govAccAddr,
+		Minter:        minter1.Bytes(),
+		Cap:           big.NewInt(8e18).Bytes(),
+		InitialSupply: big.NewInt(0).Bytes(),
 	})
 	s.Require().NoError(err)
 	// set mint cap of minter 2 to 5 a0gi
 	_, err = s.Keeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-		Authority: govAccAddr,
-		Minter:    minter2.Bytes(),
-		Cap:       big.NewInt(5e18).Bytes(),
+		Authority:     govAccAddr,
+		Minter:        minter2.Bytes(),
+		Cap:           big.NewInt(5e18).Bytes(),
+		InitialSupply: big.NewInt(0).Bytes(),
 	})
 	s.Require().NoError(err)
 
@@ -236,8 +261,7 @@ func (s *MsgServerTestSuite) TestSetMintBurn() {
 	}
 	minted := big.NewInt(0)
 	supplied := make(map[common.Address]*big.Int)
-	for id, c := range testCases {
-		fmt.Println(id)
+	for _, c := range testCases {
 		if c.IsMint {
 			_, err = s.Keeper.Mint(sdk.WrapSDKContext(s.Ctx), &types.MsgMint{
 				Minter: c.Minter.Bytes(),
@@ -270,11 +294,12 @@ func (s *MsgServerTestSuite) TestSetMintBurn() {
 				Address: c.Minter.Bytes(),
 			})
 			s.Require().NoError(err)
-			s.Require().Equal(supplied[c.Minter].Bytes(), response.Supply)
+			s.Require().Equal(supplied[c.Minter].Bytes(), response.Supply.Supply)
 		} else {
 			s.Require().Error(err)
 		}
-		coins := precisebankKeeper.GetBalance(s.Ctx, moduleAcc, precisebanktypes.ExtendedCoinDenom)
+		wa0gi := sdk.AccAddress(s.Keeper.GetWA0GIAddress(s.Ctx))
+		coins := precisebankKeeper.GetBalance(s.Ctx, wa0gi, precisebanktypes.ExtendedCoinDenom)
 		s.Require().Equal(coins.Amount.BigInt(), minted)
 	}
 }

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package zgc.wrappeda0gibase;
+package zgc.wrappeda0gibase.v1;
 
 import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";
@@ -27,6 +27,7 @@ message MsgSetMinterCap {
   string authority = 1;
   bytes minter = 2;
   bytes cap = 3; // big endian
+  bytes initialSupply = 4; // big endian
 }
 
 message MsgSetMinterCapResponse {}
