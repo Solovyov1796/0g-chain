@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"math/big"
+	"sort"
 
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -12,6 +14,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
+
+const gasPriceSuggestionBlockNum int64 = 5
 
 type (
 	// GasTx defines the contract that a transaction with a gas limit must implement.
@@ -30,17 +34,22 @@ type (
 	// DefaultProposalHandler defines the default ABCI PrepareProposal and
 	// ProcessProposal handlers.
 	DefaultProposalHandler struct {
-		mempool    mempool.Mempool
-		txVerifier ProposalTxVerifier
-		txSelector TxSelector
+		mempool         mempool.Mempool
+		txVerifier      ProposalTxVerifier
+		txSelector      TxSelector
+		feemarketKeeper FeeMarketKeeper
+	}
+	FeeMarketKeeper interface {
+		SetSuggestionGasPrice(ctx sdk.Context, gas *big.Int)
 	}
 )
 
-func NewDefaultProposalHandler(mp mempool.Mempool, txVerifier ProposalTxVerifier) *DefaultProposalHandler {
+func NewDefaultProposalHandler(mp mempool.Mempool, txVerifier ProposalTxVerifier, feemarketKeeper FeeMarketKeeper) *DefaultProposalHandler {
 	return &DefaultProposalHandler{
-		mempool:    mp,
-		txVerifier: txVerifier,
-		txSelector: NewDefaultTxSelector(),
+		mempool:         mp,
+		txVerifier:      txVerifier,
+		txSelector:      NewDefaultTxSelector(),
+		feemarketKeeper: feemarketKeeper,
 	}
 }
 
@@ -97,11 +106,25 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 		}
 
+		gasPriceSlice := make([]*big.Int, 0, h.mempool.CountTx())
+
 		iterator := h.mempool.Select(ctx, req.Txs)
 		selectedTxsSignersSeqs := make(map[string]uint64)
 		var selectedTxsNums int
 		for iterator != nil {
 			memTx := iterator.Tx()
+
+			for _, msg := range memTx.GetMsgs() {
+				msgEthTx, ok := msg.(*evmtypes.MsgEthereumTx)
+				if ok {
+					txData, err := evmtypes.UnpackTxData(msgEthTx.Data)
+					if err == nil {
+						gp := txData.GetGasPrice()
+						gasPriceSlice = append(gasPriceSlice, gp)
+					}
+				}
+			}
+
 			sigs, err := memTx.(signing.SigVerifiableTx).GetSignaturesV2()
 			if err != nil {
 				panic(fmt.Errorf("failed to get signatures: %w", err))
@@ -198,6 +221,28 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 
 			iterator = iterator.Next()
 		}
+
+		sort.Slice(gasPriceSlice, func(i, j int) bool {
+			return gasPriceSlice[i].Cmp(gasPriceSlice[j]) > 0
+		})
+
+		remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
+		for _, gp := range gasPriceSlice {
+			if remaing <= 0 {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, gp)
+				break
+			}
+			remaing -= gp.Int64()
+		}
+
+		if remaing > 0 {
+			if len(gasPriceSlice) > 0 {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, gasPriceSlice[len(gasPriceSlice)-1])
+			} else {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
+			}
+		}
+
 		return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 	}
 }
