@@ -114,7 +114,7 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 		}
 
-		txnInfoMap := make(map[string][]txnInfo, h.mempool.CountTx())
+		txnInfoMap := make(map[string][]*txnInfo, h.mempool.CountTx())
 
 		iterator := h.mempool.Select(ctx, req.Txs)
 		selectedTxsSignersSeqs := make(map[string]uint64)
@@ -156,10 +156,10 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 							}
 
 							if _, exists := txnInfoMap[signer]; !exists {
-								txnInfoMap[signer] = make([]txnInfo, 0, 128)
+								txnInfoMap[signer] = make([]*txnInfo, 0, 128)
 							}
 
-							txnInfoMap[signer] = append(txnInfoMap[signer], txnInfo{
+							txnInfoMap[signer] = append(txnInfoMap[signer], &txnInfo{
 								gasPrice: ethTx.GasPrice(),
 								gasLimit: ethTx.Gas(),
 								nonce:    nonce,
@@ -175,13 +175,13 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 					signer := sdk.AccAddress(sigs[0].PubKey.Address()).String()
 
 					if _, exists := txnInfoMap[signer]; !exists {
-						txnInfoMap[signer] = make([]txnInfo, 0, 16)
+						txnInfoMap[signer] = make([]*txnInfo, 0, 16)
 					}
 
 					evmGasPrice, err := utilCosmosDemonGasPriceToEvmDemonGasPrice(fee.GetAmount())
 
 					if err == nil {
-						txnInfoMap[signer] = append(txnInfoMap[signer], txnInfo{
+						txnInfoMap[signer] = append(txnInfoMap[signer], &txnInfo{
 							gasPrice: evmGasPrice,
 							gasLimit: utilCosmosDemonGasLimitToEvmDemonGasLimit(fee.GetGas()),
 							nonce:    sigs[0].Sequence,
@@ -255,44 +255,39 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
 		} else {
 			senderCnt := 0
+			txnCnt := 0
 			for sender := range txnInfoMap {
 				sort.Slice(txnInfoMap[sender], func(i, j int) bool {
 					return txnInfoMap[sender][i].nonce < txnInfoMap[sender][j].nonce
 				})
+				txnCnt += len(txnInfoMap[sender])
 				senderCnt++
 			}
 
 			remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
-			for senderCnt > 0 && remaing > 0 {
-				// peek top
-				txnInfoSlice := make([]txnInfo, 0, senderCnt)
+			for len(txnInfoMap) > 0 && remaing > 0 {
+
+				// peek each sender's top
+				sortSlice := make([]*txnInfo, 0, senderCnt)
 				for sender := range txnInfoMap {
-					txnInfoSlice = append(txnInfoSlice, txnInfoMap[sender][0])
-				}
-
-				sort.Slice(txnInfoSlice, func(i, j int) bool {
-					return txnInfoSlice[i].gasPrice.Cmp(txnInfoSlice[j].gasPrice) > 0
-				})
-
-				for i := range txnInfoSlice {
-					remaing -= int64(txnInfoSlice[i].gasLimit)
-					if remaing <= 0 {
-						h.feemarketKeeper.SetSuggestionGasPrice(ctx, txnInfoSlice[i].gasPrice)
-						break
+					endIndex := findFirstContinuousDecreasingSubsequence(txnInfoMap[sender])
+					appendSlice := txnInfoMap[sender][:endIndex]
+					sortSlice = append(sortSlice, appendSlice...)
+					txnInfoMap[sender] = txnInfoMap[sender][endIndex:]
+					if len(txnInfoMap[sender]) == 0 {
+						delete(txnInfoMap, sender)
 					}
 				}
 
-				// pop
-				if remaing > 0 {
-					senderCnt = 0
-					for sender := range txnInfoMap {
-						cnt := len(txnInfoMap[sender])
-						if cnt > 1 {
-							txnInfoMap[sender] = txnInfoMap[sender][1:]
-							senderCnt++
-						} else {
-							delete(txnInfoMap, sender)
-						}
+				sort.Slice(sortSlice, func(i, j int) bool {
+					return sortSlice[i].gasPrice.Cmp(sortSlice[j].gasPrice) > 0
+				})
+
+				for i := range sortSlice {
+					remaing -= int64(sortSlice[i].gasLimit)
+					if remaing <= 0 {
+						h.feemarketKeeper.SetSuggestionGasPrice(ctx, sortSlice[i].gasPrice)
+						break
 					}
 				}
 			}
@@ -458,4 +453,26 @@ func utilCosmosDemonGasPriceToEvmDemonGasPrice(gasGroup sdk.Coins) (*big.Int, er
 
 func utilCosmosDemonGasLimitToEvmDemonGasLimit(gasLimit uint64) uint64 {
 	return gasLimit * chaincfg.GasDenomConversionMultiplier
+}
+
+func findFirstContinuousDecreasingSubsequence(data []*txnInfo) int {
+	ll := len(data)
+	if ll < 2 {
+		return ll
+	}
+
+	for i := 0; i < ll-1; i++ {
+		if data[i].gasPrice.Cmp(data[i+1].gasPrice) >= 0 {
+			end := i + 1
+			for ; end < ll && data[end-1].gasPrice.Cmp(data[end].gasPrice) > 0; end++ {
+			}
+			if end == ll || data[end-1].gasPrice.Cmp(data[end].gasPrice) <= 0 {
+				return end
+			}
+		} else {
+			return i + 1
+		}
+	}
+
+	return ll
 }
