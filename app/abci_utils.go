@@ -305,7 +305,7 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			if lastProcessedTx != nil && remaing <= 0 {
 				h.feemarketKeeper.SetSuggestionGasPrice(ctx, lastProcessedTx.gasPrice)
 			} else {
-				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(1))
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
 			}
 		}
 
