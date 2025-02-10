@@ -265,41 +265,47 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			}
 
 			remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
-			for len(txnInfoMap) > 0 && remaing > 0 {
+			var lastProcessedTx *txnInfo
 
-				// pop each sender's first continuous decreasing subsequence
-				txnCnt := 0
-				senderNonceSortedSliceGroup := make([][]*txnInfo, 0, senderCnt)
-				for sender := range txnInfoMap {
-					endIndex := findFirstContinuousDecreasingSubsequence(txnInfoMap[sender])
-					appendSlice := txnInfoMap[sender][:endIndex]
-					senderNonceSortedSliceGroup = append(senderNonceSortedSliceGroup, appendSlice)
-					txnCnt += len(appendSlice)
-					txnInfoMap[sender] = txnInfoMap[sender][endIndex:]
-					if len(txnInfoMap[sender]) == 0 {
+			for remaing > 0 && len(txnInfoMap) > 0 {
+				// Find the highest gas price among the first transaction of each account
+				var highestGasPrice *big.Int
+				var selectedSender string
+
+				// Compare first transaction (lowest nonce) from each account
+				for sender, txns := range txnInfoMap {
+					if len(txns) == 0 {
 						delete(txnInfoMap, sender)
+						continue
+					}
+
+					// First tx has lowest nonce due to earlier sorting
+					if highestGasPrice == nil || txns[0].gasPrice.Cmp(highestGasPrice) > 0 {
+						highestGasPrice = txns[0].gasPrice
+						selectedSender = sender
 					}
 				}
 
-				var gasPriceSortedSlice []*txnInfo
-				if len(senderNonceSortedSliceGroup) > 0 {
-					gasPriceSortedSlice = make([]*txnInfo, 0, len(senderNonceSortedSliceGroup[0]))
-					for i := range senderNonceSortedSliceGroup {
-						gasPriceSortedSlice = mergeSort(len(gasPriceSortedSlice)+len(senderNonceSortedSliceGroup[i]), gasPriceSortedSlice, senderNonceSortedSliceGroup[i])
-					}
+				if selectedSender == "" {
+					break
 				}
 
-				for i := range gasPriceSortedSlice {
-					remaing -= int64(gasPriceSortedSlice[i].gasLimit)
-					if remaing <= 0 {
-						h.feemarketKeeper.SetSuggestionGasPrice(ctx, gasPriceSortedSlice[i].gasPrice)
-						break
-					}
+				// Process the selected transaction
+				selectedTx := txnInfoMap[selectedSender][0]
+				remaing -= int64(selectedTx.gasLimit)
+				lastProcessedTx = selectedTx
+
+				// Remove processed transaction
+				txnInfoMap[selectedSender] = txnInfoMap[selectedSender][1:]
+				if len(txnInfoMap[selectedSender]) == 0 {
+					delete(txnInfoMap, selectedSender)
 				}
 			}
 
-			if remaing > 0 {
-				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
+			if lastProcessedTx != nil && remaing <= 0 {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, lastProcessedTx.gasPrice)
+			} else {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(1))
 			}
 		}
 
