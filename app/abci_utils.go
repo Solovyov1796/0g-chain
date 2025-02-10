@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/0glabs/0g-chain/chaincfg"
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -41,6 +42,13 @@ type (
 	}
 	FeeMarketKeeper interface {
 		SetSuggestionGasPrice(ctx sdk.Context, gas *big.Int)
+	}
+
+	txnInfo struct {
+		gasPrice *big.Int
+		gasLimit uint64
+		nonce    uint64
+		sender   string
 	}
 )
 
@@ -106,24 +114,13 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 		}
 
-		gasPriceSlice := make([]*big.Int, 0, h.mempool.CountTx())
+		txnInfoMap := make(map[string][]txnInfo, h.mempool.CountTx())
 
 		iterator := h.mempool.Select(ctx, req.Txs)
 		selectedTxsSignersSeqs := make(map[string]uint64)
 		var selectedTxsNums int
 		for iterator != nil {
 			memTx := iterator.Tx()
-
-			for _, msg := range memTx.GetMsgs() {
-				msgEthTx, ok := msg.(*evmtypes.MsgEthereumTx)
-				if ok {
-					txData, err := evmtypes.UnpackTxData(msgEthTx.Data)
-					if err == nil {
-						gp := txData.GetGasPrice()
-						gasPriceSlice = append(gasPriceSlice, gp)
-					}
-				}
-			}
 
 			sigs, err := memTx.(signing.SigVerifiableTx).GetSignaturesV2()
 			if err != nil {
@@ -157,10 +154,42 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 									txSignersSeqs[signer] = nonce
 								}
 							}
+
+							if _, exists := txnInfoMap[signer]; !exists {
+								txnInfoMap[signer] = make([]txnInfo, 0, 128)
+							}
+
+							txnInfoMap[signer] = append(txnInfoMap[signer], txnInfo{
+								gasPrice: ethTx.GasPrice(),
+								gasLimit: ethTx.Gas(),
+								nonce:    nonce,
+								sender:   signer,
+							})
 						}
 					}
 				}
 			} else {
+				// ignore multisig case now
+				fee := memTx.(sdk.Fee)
+				if len(sigs) == 1 {
+					signer := sdk.AccAddress(sigs[0].PubKey.Address()).String()
+
+					if _, exists := txnInfoMap[signer]; !exists {
+						txnInfoMap[signer] = make([]txnInfo, 0, 16)
+					}
+
+					evmGasPrice, err := utilCosmosDemonGasPriceToEvmDemonGasPrice(fee.GetAmount())
+
+					if err == nil {
+						txnInfoMap[signer] = append(txnInfoMap[signer], txnInfo{
+							gasPrice: evmGasPrice,
+							gasLimit: utilCosmosDemonGasLimitToEvmDemonGasLimit(fee.GetGas()),
+							nonce:    sigs[0].Sequence,
+							sender:   signer,
+						})
+					}
+				}
+
 				for _, sig := range sigs {
 					signer := sdk.AccAddress(sig.PubKey.Address()).String()
 					seq, ok := selectedTxsSignersSeqs[signer]
@@ -222,23 +251,53 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			iterator = iterator.Next()
 		}
 
-		sort.Slice(gasPriceSlice, func(i, j int) bool {
-			return gasPriceSlice[i].Cmp(gasPriceSlice[j]) > 0
-		})
-
-		remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
-		for _, gp := range gasPriceSlice {
-			if remaing <= 0 {
-				h.feemarketKeeper.SetSuggestionGasPrice(ctx, gp)
-				break
+		if len(txnInfoMap) == 0 {
+			h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
+		} else {
+			senderCnt := 0
+			for sender := range txnInfoMap {
+				sort.Slice(txnInfoMap[sender], func(i, j int) bool {
+					return txnInfoMap[sender][i].nonce < txnInfoMap[sender][j].nonce
+				})
+				senderCnt++
 			}
-			remaing -= gp.Int64()
-		}
 
-		if remaing > 0 {
-			if len(gasPriceSlice) > 0 {
-				h.feemarketKeeper.SetSuggestionGasPrice(ctx, gasPriceSlice[len(gasPriceSlice)-1])
-			} else {
+			remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
+			for senderCnt > 0 && remaing > 0 {
+				// peek top
+				txnInfoSlice := make([]txnInfo, 0, senderCnt)
+				for sender := range txnInfoMap {
+					txnInfoSlice = append(txnInfoSlice, txnInfoMap[sender][0])
+				}
+
+				sort.Slice(txnInfoSlice, func(i, j int) bool {
+					return txnInfoSlice[i].gasPrice.Cmp(txnInfoSlice[j].gasPrice) > 0
+				})
+
+				for i := range txnInfoSlice {
+					remaing -= int64(txnInfoSlice[i].gasLimit)
+					if remaing <= 0 {
+						h.feemarketKeeper.SetSuggestionGasPrice(ctx, txnInfoSlice[i].gasPrice)
+						break
+					}
+				}
+
+				// pop
+				if remaing > 0 {
+					senderCnt = 0
+					for sender := range txnInfoMap {
+						cnt := len(txnInfoMap[sender])
+						if cnt > 1 {
+							txnInfoMap[sender] = txnInfoMap[sender][1:]
+							senderCnt++
+						} else {
+							delete(txnInfoMap, sender)
+						}
+					}
+				}
+			}
+
+			if remaing > 0 {
 				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
 			}
 		}
@@ -380,4 +439,23 @@ func (ts *defaultTxSelector) SelectTxForProposal(maxTxBytes, maxBlockGas uint64,
 
 	// check if we've reached capacity; if so, we cannot select any more transactions
 	return ts.totalTxBytes >= maxTxBytes || (maxBlockGas > 0 && (ts.totalTxGas >= maxBlockGas))
+}
+
+func utilCosmosDemonGasPriceToEvmDemonGasPrice(gasGroup sdk.Coins) (*big.Int, error) {
+	gasPrice := big.NewInt(0)
+	for _, coin := range gasGroup {
+		if coin.Denom == chaincfg.GasDenom {
+			thisGasPrice := big.NewInt(0).SetUint64(coin.Amount.Uint64())
+			thisGasPrice = thisGasPrice.Mul(thisGasPrice, big.NewInt(0).SetInt64(chaincfg.GasDenomConversionMultiplier))
+			gasPrice = gasPrice.Add(gasPrice, thisGasPrice)
+		} else {
+			return big.NewInt(0), fmt.Errorf("invalid denom: %s", coin.Denom)
+		}
+	}
+
+	return gasPrice, nil
+}
+
+func utilCosmosDemonGasLimitToEvmDemonGasLimit(gasLimit uint64) uint64 {
+	return gasLimit * chaincfg.GasDenomConversionMultiplier
 }
