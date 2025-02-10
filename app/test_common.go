@@ -96,7 +96,7 @@ func NewTestAppFromSealed() TestApp {
 	bApp := NewBaseApp(log.NewNopLogger(), db, encCfg, baseapp.SetChainID(TestChainId))
 	app := NewApp(
 		chaincfg.DefaultNodeHome, nil,
-		encCfg, DefaultOptions, bApp,
+		encCfg, DefaultOptions, bApp, nil,
 	)
 	return TestApp{App: *app}
 }
@@ -117,7 +117,7 @@ func (tApp TestApp) GetPriceFeedKeeper() pricefeedkeeper.Keeper     { return tAp
 func (tApp TestApp) GetCommitteeKeeper() committeekeeper.Keeper     { return tApp.committeeKeeper }
 func (tApp TestApp) GetEvmutilKeeper() evmutilkeeper.Keeper         { return tApp.evmutilKeeper }
 func (tApp TestApp) GetEvmKeeper() *evmkeeper.Keeper                { return tApp.evmKeeper }
-func (tApp TestApp) GetFeeMarketKeeper() feemarketkeeper.Keeper     { return tApp.feeMarketKeeper }
+func (tApp TestApp) GetFeeMarketKeeper() *feemarketkeeper.Keeper    { return tApp.feeMarketKeeper }
 func (tApp TestApp) GetDASignersKeeper() dasignerskeeper.Keeper     { return tApp.dasignersKeeper }
 func (tApp TestApp) GetPrecisebankKeeper() precisebankkeeper.Keeper { return tApp.precisebankKeeper }
 func (tApp TestApp) GetWrappedA0GIBaseKeeper() wrappeda0gibasekeeper.Keeper {

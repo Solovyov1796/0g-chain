@@ -2,7 +2,10 @@ package app
 
 import (
 	"fmt"
+	"math/big"
+	"sort"
 
+	"github.com/0glabs/0g-chain/chaincfg"
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -12,6 +15,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
+
+const gasPriceSuggestionBlockNum int64 = 5
 
 type (
 	// GasTx defines the contract that a transaction with a gas limit must implement.
@@ -30,17 +35,29 @@ type (
 	// DefaultProposalHandler defines the default ABCI PrepareProposal and
 	// ProcessProposal handlers.
 	DefaultProposalHandler struct {
-		mempool    mempool.Mempool
-		txVerifier ProposalTxVerifier
-		txSelector TxSelector
+		mempool         mempool.Mempool
+		txVerifier      ProposalTxVerifier
+		txSelector      TxSelector
+		feemarketKeeper FeeMarketKeeper
+	}
+	FeeMarketKeeper interface {
+		SetSuggestionGasPrice(ctx sdk.Context, gas *big.Int)
+	}
+
+	txnInfo struct {
+		gasPrice *big.Int
+		gasLimit uint64
+		nonce    uint64
+		sender   string
 	}
 )
 
-func NewDefaultProposalHandler(mp mempool.Mempool, txVerifier ProposalTxVerifier) *DefaultProposalHandler {
+func NewDefaultProposalHandler(mp mempool.Mempool, txVerifier ProposalTxVerifier, feemarketKeeper FeeMarketKeeper) *DefaultProposalHandler {
 	return &DefaultProposalHandler{
-		mempool:    mp,
-		txVerifier: txVerifier,
-		txSelector: NewDefaultTxSelector(),
+		mempool:         mp,
+		txVerifier:      txVerifier,
+		txSelector:      NewDefaultTxSelector(),
+		feemarketKeeper: feemarketKeeper,
 	}
 }
 
@@ -97,11 +114,14 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 		}
 
+		txnInfoMap := make(map[string][]*txnInfo, h.mempool.CountTx())
+
 		iterator := h.mempool.Select(ctx, req.Txs)
 		selectedTxsSignersSeqs := make(map[string]uint64)
 		var selectedTxsNums int
 		for iterator != nil {
 			memTx := iterator.Tx()
+
 			sigs, err := memTx.(signing.SigVerifiableTx).GetSignaturesV2()
 			if err != nil {
 				panic(fmt.Errorf("failed to get signatures: %w", err))
@@ -134,10 +154,42 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 									txSignersSeqs[signer] = nonce
 								}
 							}
+
+							if _, exists := txnInfoMap[signer]; !exists {
+								txnInfoMap[signer] = make([]*txnInfo, 0, 128)
+							}
+
+							txnInfoMap[signer] = append(txnInfoMap[signer], &txnInfo{
+								gasPrice: ethTx.GasPrice(),
+								gasLimit: ethTx.Gas(),
+								nonce:    nonce,
+								sender:   signer,
+							})
 						}
 					}
 				}
 			} else {
+				// ignore multisig case now
+				fee := memTx.(sdk.Fee)
+				if len(sigs) == 1 {
+					signer := sdk.AccAddress(sigs[0].PubKey.Address()).String()
+
+					if _, exists := txnInfoMap[signer]; !exists {
+						txnInfoMap[signer] = make([]*txnInfo, 0, 16)
+					}
+
+					evmGasPrice, err := utilCosmosDemonGasPriceToEvmDemonGasPrice(fee.GetAmount())
+
+					if err == nil {
+						txnInfoMap[signer] = append(txnInfoMap[signer], &txnInfo{
+							gasPrice: evmGasPrice,
+							gasLimit: utilCosmosDemonGasLimitToEvmDemonGasLimit(fee.GetGas()),
+							nonce:    sigs[0].Sequence,
+							sender:   signer,
+						})
+					}
+				}
+
 				for _, sig := range sigs {
 					signer := sdk.AccAddress(sig.PubKey.Address()).String()
 					seq, ok := selectedTxsSignersSeqs[signer]
@@ -198,6 +250,65 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 
 			iterator = iterator.Next()
 		}
+
+		if len(txnInfoMap) == 0 {
+			h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
+		} else {
+			senderCnt := 0
+			txnCnt := 0
+			for sender := range txnInfoMap {
+				sort.Slice(txnInfoMap[sender], func(i, j int) bool {
+					return txnInfoMap[sender][i].nonce < txnInfoMap[sender][j].nonce
+				})
+				txnCnt += len(txnInfoMap[sender])
+				senderCnt++
+			}
+
+			remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
+			var lastProcessedTx *txnInfo
+
+			for remaing > 0 && len(txnInfoMap) > 0 {
+				// Find the highest gas price among the first transaction of each account
+				var highestGasPrice *big.Int
+				var selectedSender string
+
+				// Compare first transaction (lowest nonce) from each account
+				for sender, txns := range txnInfoMap {
+					if len(txns) == 0 {
+						delete(txnInfoMap, sender)
+						continue
+					}
+
+					// First tx has lowest nonce due to earlier sorting
+					if highestGasPrice == nil || txns[0].gasPrice.Cmp(highestGasPrice) > 0 {
+						highestGasPrice = txns[0].gasPrice
+						selectedSender = sender
+					}
+				}
+
+				if selectedSender == "" {
+					break
+				}
+
+				// Process the selected transaction
+				selectedTx := txnInfoMap[selectedSender][0]
+				remaing -= int64(selectedTx.gasLimit)
+				lastProcessedTx = selectedTx
+
+				// Remove processed transaction
+				txnInfoMap[selectedSender] = txnInfoMap[selectedSender][1:]
+				if len(txnInfoMap[selectedSender]) == 0 {
+					delete(txnInfoMap, selectedSender)
+				}
+			}
+
+			if lastProcessedTx != nil && remaing <= 0 {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, lastProcessedTx.gasPrice)
+			} else {
+				h.feemarketKeeper.SetSuggestionGasPrice(ctx, big.NewInt(0))
+			}
+		}
+
 		return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 	}
 }
@@ -335,4 +446,23 @@ func (ts *defaultTxSelector) SelectTxForProposal(maxTxBytes, maxBlockGas uint64,
 
 	// check if we've reached capacity; if so, we cannot select any more transactions
 	return ts.totalTxBytes >= maxTxBytes || (maxBlockGas > 0 && (ts.totalTxGas >= maxBlockGas))
+}
+
+func utilCosmosDemonGasPriceToEvmDemonGasPrice(gasGroup sdk.Coins) (*big.Int, error) {
+	gasPrice := big.NewInt(0)
+	for _, coin := range gasGroup {
+		if coin.Denom == chaincfg.GasDenom {
+			thisGasPrice := big.NewInt(0).SetUint64(coin.Amount.Uint64())
+			thisGasPrice = thisGasPrice.Mul(thisGasPrice, big.NewInt(0).SetInt64(chaincfg.GasDenomConversionMultiplier))
+			gasPrice = gasPrice.Add(gasPrice, thisGasPrice)
+		} else {
+			return big.NewInt(0), fmt.Errorf("invalid denom: %s", coin.Denom)
+		}
+	}
+
+	return gasPrice, nil
+}
+
+func utilCosmosDemonGasLimitToEvmDemonGasLimit(gasLimit uint64) uint64 {
+	return gasLimit * chaincfg.GasDenomConversionMultiplier
 }
