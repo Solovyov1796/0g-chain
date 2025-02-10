@@ -267,26 +267,32 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			remaing := gasPriceSuggestionBlockNum * int64(maxBlockGas)
 			for len(txnInfoMap) > 0 && remaing > 0 {
 
-				// peek each sender's top
-				sortSlice := make([]*txnInfo, 0, senderCnt)
+				// pop each sender's first continuous decreasing subsequence
+				txnCnt := 0
+				senderNonceSortedSliceGroup := make([][]*txnInfo, 0, senderCnt)
 				for sender := range txnInfoMap {
 					endIndex := findFirstContinuousDecreasingSubsequence(txnInfoMap[sender])
 					appendSlice := txnInfoMap[sender][:endIndex]
-					sortSlice = append(sortSlice, appendSlice...)
+					senderNonceSortedSliceGroup = append(senderNonceSortedSliceGroup, appendSlice)
+					txnCnt += len(appendSlice)
 					txnInfoMap[sender] = txnInfoMap[sender][endIndex:]
 					if len(txnInfoMap[sender]) == 0 {
 						delete(txnInfoMap, sender)
 					}
 				}
 
-				sort.Slice(sortSlice, func(i, j int) bool {
-					return sortSlice[i].gasPrice.Cmp(sortSlice[j].gasPrice) > 0
-				})
+				var gasPriceSortedSlice []*txnInfo
+				if len(senderNonceSortedSliceGroup) > 0 {
+					gasPriceSortedSlice = make([]*txnInfo, 0, len(senderNonceSortedSliceGroup[0]))
+					for i := range senderNonceSortedSliceGroup {
+						gasPriceSortedSlice = mergeSort(len(gasPriceSortedSlice)+len(senderNonceSortedSliceGroup[i]), gasPriceSortedSlice, senderNonceSortedSliceGroup[i])
+					}
+				}
 
-				for i := range sortSlice {
-					remaing -= int64(sortSlice[i].gasLimit)
+				for i := range gasPriceSortedSlice {
+					remaing -= int64(gasPriceSortedSlice[i].gasLimit)
 					if remaing <= 0 {
-						h.feemarketKeeper.SetSuggestionGasPrice(ctx, sortSlice[i].gasPrice)
+						h.feemarketKeeper.SetSuggestionGasPrice(ctx, gasPriceSortedSlice[i].gasPrice)
 						break
 					}
 				}
@@ -475,4 +481,24 @@ func findFirstContinuousDecreasingSubsequence(data []*txnInfo) int {
 	}
 
 	return ll
+}
+
+func mergeSort(size int, left, right []*txnInfo) []*txnInfo {
+	result := make([]*txnInfo, 0, size)
+	i, j := 0, 0
+
+	for i < len(left) && j < len(right) {
+		if left[i].gasPrice.Cmp(right[j].gasPrice) > 0 {
+			result = append(result, left[i])
+			i++
+		} else {
+			result = append(result, right[j])
+			j++
+		}
+	}
+
+	result = append(result, left[i:]...)
+	result = append(result, right[j:]...)
+
+	return result
 }
