@@ -35,11 +35,13 @@ to quickly create a Cobra application.`,
 }
 
 const (
-	basePrefix        = 6370
-	evmFaucetMnemonic = "brief similar type month pause march ribbon rocket vanish space walnut father filter similar wet exact biology ugly empower cousin erode lend science crisp"
-	//evmFaucetMnemonic = "news tornado sponsor drastic dolphin awful plastic select true lizard width idle ability pigeon runway lift oppose isolate maple aspect safe jungle author hole"
-	//"crash sort dwarf disease change advice attract clump avoid mobile clump right junior axis book fresh mask tube front require until face effort vault"
-	// "hundred flash cattle inquiry gorilla quick enact lazy galaxy apple bitter liberty print sun hurdle oak town cash because round chalk marriage response success"
+	basePrefix        = 7372
+	evmFaucetMnemonic = "hundred flash cattle inquiry gorilla quick enact lazy galaxy apple bitter liberty print sun hurdle oak town cash because round chalk marriage response success"
+
+// "brief similar type month pause march ribbon rocket vanish space walnut father filter similar wet exact biology ugly empower cousin erode lend science crisp"
+// evmFaucetMnemonic = "news tornado sponsor drastic dolphin awful plastic select true lizard width idle ability pigeon runway lift oppose isolate maple aspect safe jungle author hole"
+// "crash sort dwarf disease change advice attract clump avoid mobile clump right junior axis book fresh mask tube front require until face effort vault"
+// "hundred flash cattle inquiry gorilla quick enact lazy galaxy apple bitter liberty print sun hurdle oak town cash because round chalk marriage response success"
 )
 
 var runCmd = &cobra.Command{

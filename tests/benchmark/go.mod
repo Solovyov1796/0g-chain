@@ -1,6 +1,6 @@
 module github.com/0glabs/0g-chain/tests/benchmark
 
-go 1.23.1
+go 1.21
 
 require (
 	cosmossdk.io/errors v1.0.1

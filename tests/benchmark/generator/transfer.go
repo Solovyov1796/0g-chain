@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/0glabs/0g-chain/tests/benchmark/account"
 	"github.com/0glabs/0g-chain/tests/benchmark/utils"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/rand"
 )
 
 type transferGeneratorImlp struct {
@@ -82,17 +84,52 @@ func (g *transferGeneratorImlp) WarmUp() error {
 	return nil
 }
 
+var lastSeed int64
+
+func generateMutilper() int {
+	seed := time.Now().UnixNano()
+	if seed == lastSeed {
+		seed += 1
+	}
+	rand.Seed(uint64(seed))
+
+	min, max := 110, 200
+	randomNumber := rand.Intn(max-min) + min
+
+	lastSeed = seed
+	return randomNumber
+}
+
 func (g *transferGeneratorImlp) generateTransaction(t *task) (*types.Transaction, error) {
 	ctx := context.Background()
 
 	nonce := t.fromAccount.GetAndIncrementNonce()
-
-	gasLimit := defaultTransferGasLimit
-	gasPrice, err := g.client.SuggestGasPrice(ctx)
+	header, err := g.client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	m := generateMutilper()
+	gasLimit := uint64(m) * defaultTransferGasLimit / 100
+	gasPrice, err := g.client.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
+	println("0 gasPrice:", gasPrice.String())
+	gasPrice = gasPrice.Mul(big.NewInt(int64(m)), gasPrice)
+	gasPrice = gasPrice.Div(gasPrice, big.NewInt(100))
+	println("1 gasPrice:", gasPrice.String())
+	if gasPrice.Cmp(big.NewInt(int64(gasLimit))) > 0 {
+		gasLimit = uint64(gasPrice.Int64()) + 1
+	}
+
+	if gasPrice.Cmp(big.NewInt(int64(header.GasLimit))) > 0 {
+		gasPrice = big.NewInt(int64(defaultTransferGasLimit))
+	}
+	println("2 gasPrice:", gasPrice.String())
+	if gasPrice.Cmp(big.NewInt(1)) == 0 {
+		println("here")
+	}
 	// tx := types.NewTransaction(nonce, t.toAccout.Address, t.value, gasLimit, big.NewInt(0), nil)
 	tx := types.NewTransaction(nonce, t.toAccout.Address, t.value, gasLimit, gasPrice, nil)
 	t.fromAccount.ReqChan <- &account.TxSignRequest{
