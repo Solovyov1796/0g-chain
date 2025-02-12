@@ -96,7 +96,7 @@ func NewTestAppFromSealed() TestApp {
 	bApp := NewBaseApp(log.NewNopLogger(), db, encCfg, baseapp.SetChainID(TestChainId))
 	app := NewApp(
 		chaincfg.DefaultNodeHome, nil,
-		encCfg, DefaultOptions, bApp, nil,
+		encCfg, DefaultOptions, bApp,
 	)
 	return TestApp{App: *app}
 }

@@ -38,7 +38,6 @@ func TestNewApp(t *testing.T) {
 			MakeEncodingConfig(),
 			baseapp.SetChainID(TestChainId),
 		),
-		nil,
 	)
 }
 
@@ -56,7 +55,6 @@ func TestExport(t *testing.T) {
 			MakeEncodingConfig(),
 			baseapp.SetChainID(TestChainId),
 		),
-		nil,
 	)
 
 	genesisState := GenesisStateWithSingleValidator(&TestApp{App: *app}, NewDefaultGenesisState())
