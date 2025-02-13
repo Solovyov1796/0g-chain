@@ -126,6 +126,8 @@ func (ac appCreator) newApp(
 		baseapp.SetMempool(mempool),
 	)
 	bApp.SetTxEncoder(ac.encodingConfig.TxConfig.TxEncoder())
+	abciProposalHandler := app.NewDefaultProposalHandler(mempool, bApp)
+	bApp.SetPrepareProposal(abciProposalHandler.PrepareProposalHandler())
 
 	newApp := app.NewApp(
 		homeDir, traceStore, ac.encodingConfig,
@@ -140,10 +142,6 @@ func (ac appCreator) newApp(
 			EVMMaxGasWanted:       cast.ToUint64(appOpts.Get(ethermintflags.EVMMaxTxGasWanted)),
 		},
 		bApp,
-		func(k app.FeeMarketKeeper) sdk.PrepareProposalHandler {
-			abciProposalHandler := app.NewDefaultProposalHandler(mempool, bApp, k)
-			return abciProposalHandler.PrepareProposalHandler()
-		},
 	)
 
 	return newApp
@@ -172,14 +170,14 @@ func (ac appCreator) appExport(
 	var tempApp *app.App
 	if height != -1 {
 		bApp := app.NewBaseApp(logger, db, ac.encodingConfig)
-		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp, nil)
+		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp)
 
 		if err := tempApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
 		bApp := app.NewBaseApp(logger, db, ac.encodingConfig)
-		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp, nil)
+		tempApp = app.NewApp(homePath, traceStore, ac.encodingConfig, options, bApp)
 	}
 	return tempApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)
 }

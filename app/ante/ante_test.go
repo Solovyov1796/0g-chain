@@ -62,7 +62,6 @@ func TestAppAnteHandler_AuthorizedMempool(t *testing.T) {
 				encodingConfig,
 				baseapp.SetChainID(app.TestChainId),
 			),
-			nil,
 		),
 	}
 
