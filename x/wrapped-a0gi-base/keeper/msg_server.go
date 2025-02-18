@@ -18,22 +18,30 @@ var _ types.MsgServer = &Keeper{}
 func (k Keeper) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.MsgBurnResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	minter := common.BytesToAddress(msg.Minter)
-	supply, err := k.getMinterSupply(ctx, minter)
+	s, err := k.getMinterSupply(ctx, minter)
 	if err != nil {
 		return nil, err
 	}
+	supply := new(big.Int).SetBytes(s.Supply)
+
 	amount := new(big.Int).SetBytes(msg.Amount)
 	// check & update mint supply
 	supply.Sub(supply, amount)
 	if supply.Cmp(big.NewInt(0)) < 0 {
 		return nil, types.ErrInsufficientMintSupply
 	}
-	// burn
+	// transfer from wa0gi contract address & burn
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
+	wa0gi := sdk.AccAddress(k.GetWA0GIAddress(ctx))
+	if err = k.pbkeeper.SendCoinsFromAccountToModule(ctx, wa0gi, types.ModuleName, sdk.NewCoins(c)); err != nil {
+		return nil, err
+	}
 	if err = k.pbkeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
 		return nil, err
 	}
-	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
+	// update supply
+	s.Supply = supply.Bytes()
+	if err = k.setMinterSupply(ctx, minter, s); err != nil {
 		return nil, err
 	}
 	return &types.MsgBurnResponse{}, nil
@@ -43,26 +51,31 @@ func (k Keeper) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.MsgBurnR
 func (k Keeper) Mint(goCtx context.Context, msg *types.MsgMint) (*types.MsgMintResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	minter := common.BytesToAddress(msg.Minter)
-	cap, err := k.getMinterCap(ctx, minter)
+	s, err := k.getMinterSupply(ctx, minter)
 	if err != nil {
 		return nil, err
 	}
-	supply, err := k.getMinterSupply(ctx, minter)
-	if err != nil {
-		return nil, err
-	}
+	supply := new(big.Int).SetBytes(s.Supply)
+	cap := new(big.Int).SetBytes(s.Cap)
+
 	amount := new(big.Int).SetBytes(msg.Amount)
 	// check & update mint supply
 	supply.Add(supply, amount)
 	if supply.Cmp(cap) > 0 {
 		return nil, types.ErrInsufficientMintCap
 	}
-	// mint
+	// mint & transfer to wa0gi contract address
 	c := sdk.NewCoin(precisebanktypes.ExtendedCoinDenom, sdk.NewIntFromBigInt(amount))
 	if err = k.pbkeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(c)); err != nil {
 		return nil, err
 	}
-	if err = k.setMinterSupply(ctx, minter, supply); err != nil {
+	wa0gi := sdk.AccAddress(k.GetWA0GIAddress(ctx))
+	if err = k.pbkeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, wa0gi, sdk.NewCoins(c)); err != nil {
+		return nil, err
+	}
+	// update supply
+	s.Supply = supply.Bytes()
+	if err = k.setMinterSupply(ctx, minter, s); err != nil {
 		return nil, err
 	}
 	return &types.MsgMintResponse{}, nil
@@ -76,8 +89,26 @@ func (k Keeper) SetMinterCap(goCtx context.Context, msg *types.MsgSetMinterCap) 
 	if k.authority != msg.Authority {
 		return nil, errorsmod.Wrapf(gov.ErrInvalidSigner, "expected %s got %s", k.authority, msg.Authority)
 	}
-	// update minter cap
-	if err := k.setMinterCap(ctx, minter, new(big.Int).SetBytes(msg.Cap)); err != nil {
+	// get previous minter supply
+	s, err := k.getMinterSupply(ctx, minter)
+	if err != nil {
+		return nil, err
+	}
+	supply := new(big.Int).SetBytes(s.Supply)
+	currentInitialSupply := new(big.Int).SetBytes(s.InitialSupply)
+	newInitialSupply := new(big.Int).SetBytes(msg.InitialSupply)
+	difference := new(big.Int).Sub(newInitialSupply, currentInitialSupply)
+	supply.Add(supply, difference)
+	if supply.Cmp(big.NewInt(0)) < 0 {
+		supply = big.NewInt(0)
+	}
+
+	s.Cap = msg.Cap
+	s.InitialSupply = msg.InitialSupply
+	s.Supply = supply.Bytes()
+
+	// update minter supply
+	if err := k.setMinterSupply(ctx, minter, s); err != nil {
 		return nil, err
 	}
 	return &types.MsgSetMinterCapResponse{}, nil

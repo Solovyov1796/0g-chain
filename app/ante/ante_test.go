@@ -52,13 +52,16 @@ func TestAppAnteHandler_AuthorizedMempool(t *testing.T) {
 
 	tApp := app.TestApp{
 		App: *app.NewApp(
-			log.NewNopLogger(),
-			tmdb.NewMemDB(),
 			chaincfg.DefaultNodeHome,
 			nil,
 			encodingConfig,
 			opts,
-			baseapp.SetChainID(app.TestChainId),
+			app.NewBaseApp(
+				log.NewNopLogger(),
+				tmdb.NewMemDB(),
+				encodingConfig,
+				baseapp.SetChainID(app.TestChainId),
+			),
 		),
 	}
 

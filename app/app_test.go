@@ -28,19 +28,34 @@ import (
 func TestNewApp(t *testing.T) {
 	chaincfg.SetSDKConfig()
 	NewApp(
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
-		db.NewMemDB(),
 		chaincfg.DefaultNodeHome,
 		nil,
 		MakeEncodingConfig(),
 		DefaultOptions,
+		NewBaseApp(
+			log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+			db.NewMemDB(),
+			MakeEncodingConfig(),
+			baseapp.SetChainID(TestChainId),
+		),
 	)
 }
 
 func TestExport(t *testing.T) {
 	chaincfg.SetSDKConfig()
 	db := db.NewMemDB()
-	app := NewApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, chaincfg.DefaultNodeHome, nil, MakeEncodingConfig(), DefaultOptions, baseapp.SetChainID(TestChainId))
+	app := NewApp(
+		chaincfg.DefaultNodeHome,
+		nil,
+		MakeEncodingConfig(),
+		DefaultOptions,
+		NewBaseApp(
+			log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+			db,
+			MakeEncodingConfig(),
+			baseapp.SetChainID(TestChainId),
+		),
+	)
 
 	genesisState := GenesisStateWithSingleValidator(&TestApp{App: *app}, NewDefaultGenesisState())
 

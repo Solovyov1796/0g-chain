@@ -30,7 +30,7 @@ var (
 
 // Wrappeda0gibaseMetaData contains all meta data concerning the Wrappeda0gibase contract.
 var Wrappeda0gibaseMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWA0GI\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"minterSupply\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cap\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"total\",\"type\":\"uint256\"}],\"internalType\":\"structSupply\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWA0GI\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"minterSupply\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"cap\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"initialSupply\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"supply\",\"type\":\"uint256\"}],\"internalType\":\"structSupply\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // Wrappeda0gibaseABI is the input ABI used to generate the binding from.
@@ -212,7 +212,7 @@ func (_Wrappeda0gibase *Wrappeda0gibaseCallerSession) GetWA0GI() (common.Address
 
 // MinterSupply is a free data retrieval call binding the contract method 0x95609212.
 //
-// Solidity: function minterSupply(address minter) view returns((uint256,uint256))
+// Solidity: function minterSupply(address minter) view returns((uint256,uint256,uint256))
 func (_Wrappeda0gibase *Wrappeda0gibaseCaller) MinterSupply(opts *bind.CallOpts, minter common.Address) (Supply, error) {
 	var out []interface{}
 	err := _Wrappeda0gibase.contract.Call(opts, &out, "minterSupply", minter)
@@ -229,14 +229,14 @@ func (_Wrappeda0gibase *Wrappeda0gibaseCaller) MinterSupply(opts *bind.CallOpts,
 
 // MinterSupply is a free data retrieval call binding the contract method 0x95609212.
 //
-// Solidity: function minterSupply(address minter) view returns((uint256,uint256))
+// Solidity: function minterSupply(address minter) view returns((uint256,uint256,uint256))
 func (_Wrappeda0gibase *Wrappeda0gibaseSession) MinterSupply(minter common.Address) (Supply, error) {
 	return _Wrappeda0gibase.Contract.MinterSupply(&_Wrappeda0gibase.CallOpts, minter)
 }
 
 // MinterSupply is a free data retrieval call binding the contract method 0x95609212.
 //
-// Solidity: function minterSupply(address minter) view returns((uint256,uint256))
+// Solidity: function minterSupply(address minter) view returns((uint256,uint256,uint256))
 func (_Wrappeda0gibase *Wrappeda0gibaseCallerSession) MinterSupply(minter common.Address) (Supply, error) {
 	return _Wrappeda0gibase.Contract.MinterSupply(&_Wrappeda0gibase.CallOpts, minter)
 }

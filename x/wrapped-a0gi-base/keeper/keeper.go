@@ -46,26 +46,24 @@ func (k Keeper) GetWA0GIAddress(ctx sdk.Context) []byte {
 	return bz
 }
 
-func (k Keeper) setMinterCap(ctx sdk.Context, account common.Address, cap *big.Int) error {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.MinterCapKeyPrefix)
-	store.Set(account.Bytes(), cap.Bytes())
+func (k Keeper) setMinterSupply(ctx sdk.Context, account common.Address, supply types.Supply) error {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.MinterSupplyKeyPrefix)
+	bz := k.cdc.MustMarshal(&supply)
+	store.Set(account.Bytes(), bz)
 	return nil
 }
 
-func (k Keeper) getMinterCap(ctx sdk.Context, account common.Address) (*big.Int, error) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.MinterCapKeyPrefix)
-	bz := store.Get(account.Bytes())
-	return new(big.Int).SetBytes(bz), nil
-}
-
-func (k Keeper) setMinterSupply(ctx sdk.Context, account common.Address, supply *big.Int) error {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.MinterSupplyKeyPrefix)
-	store.Set(account.Bytes(), supply.Bytes())
-	return nil
-}
-
-func (k Keeper) getMinterSupply(ctx sdk.Context, account common.Address) (*big.Int, error) {
+func (k Keeper) getMinterSupply(ctx sdk.Context, account common.Address) (types.Supply, error) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.MinterSupplyKeyPrefix)
 	bz := store.Get(account.Bytes())
-	return new(big.Int).SetBytes(bz), nil
+	if bz == nil {
+		return types.Supply{
+			Cap:           big.NewInt(0).Bytes(),
+			InitialSupply: big.NewInt(0).Bytes(),
+			Supply:        big.NewInt(0).Bytes(),
+		}, nil
+	}
+	var supply types.Supply
+	k.cdc.MustUnmarshal(bz, &supply)
+	return supply, nil
 }

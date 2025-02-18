@@ -3,7 +3,8 @@ pragma solidity >=0.8.0;
 
 struct Supply {
     uint256 cap;
-    uint256 total;
+    uint256 initialSupply;
+    uint256 supply;
 }
 
 /**
@@ -23,12 +24,13 @@ interface IWrappedA0GIBase {
     function getWA0GI() external view returns (address);
 
     /**
-     * @dev set the cap for a minter.
+     * @dev set the cap and initial supply for a minter.
      * It is designed to be called by governance module only so it's not implemented at EVM precompile side.
      * @param minter minter address
      * @param cap mint cap
+     * @param initialSupply initial mint supply
      */
-    // function setMinterCap(address minter, uint256 cap) external;
+    // function setMinterCap(address minter, uint256 cap, uint256 initialSupply) external;
 
     /**
      * @dev get the mint supply of given address

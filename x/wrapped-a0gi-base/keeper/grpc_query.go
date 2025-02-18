@@ -14,17 +14,12 @@ var _ types.QueryServer = Keeper{}
 func (k Keeper) MinterSupply(c context.Context, request *types.MinterSupplyRequest) (*types.MinterSupplyResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	account := common.BytesToAddress(request.Address)
-	cap, err := k.getMinterCap(ctx, account)
-	if err != nil {
-		return nil, err
-	}
 	supply, err := k.getMinterSupply(ctx, account)
 	if err != nil {
 		return nil, err
 	}
 	return &types.MinterSupplyResponse{
-		Cap:    cap.Bytes(),
-		Supply: supply.Bytes(),
+		Supply: &supply,
 	}, nil
 }
 

@@ -1,7 +1,6 @@
 package wrappeda0gibase_test
 
 import (
-	"fmt"
 	"math/big"
 
 	wrappeda0gibaseprecompile "github.com/0glabs/0g-chain/precompiles/wrapped-a0gi-base"
@@ -38,8 +37,9 @@ func (s *WrappedA0giBaseTestSuite) TestMint() {
 					Address: s.signerOne.Addr.Bytes(),
 				})
 				s.Assert().NoError(err)
-				s.Require().Equal(supply.Cap, big.NewInt(8e18).Bytes())
-				s.Require().Equal(supply.Supply, big.NewInt(1e18).Bytes())
+				s.Require().Equal(supply.Supply.Cap, big.NewInt(8e18).Bytes())
+				s.Require().Equal(supply.Supply.InitialSupply, big.NewInt(4e18).Bytes())
+				s.Require().Equal(supply.Supply.Supply, big.NewInt(4e18+1e18).Bytes())
 				// fmt.Println(wa0gi)
 			},
 			100000,
@@ -85,12 +85,12 @@ func (s *WrappedA0giBaseTestSuite) TestMint() {
 		s.Run(tc.name, func() {
 			s.SetupTest()
 
-			fmt.Println(s.signerOne.Addr)
 			s.wa0gibasekeeper.SetWA0GIAddress(s.Ctx, s.signerOne.Addr)
 			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-				Authority: govAccAddr,
-				Minter:    s.signerOne.Addr.Bytes(),
-				Cap:       big.NewInt(8e18).Bytes(),
+				Authority:     govAccAddr,
+				Minter:        s.signerOne.Addr.Bytes(),
+				Cap:           big.NewInt(8e18).Bytes(),
+				InitialSupply: big.NewInt(4e18).Bytes(),
 			})
 
 			var err error
@@ -140,8 +140,9 @@ func (s *WrappedA0giBaseTestSuite) TestBurn() {
 					Address: s.signerOne.Addr.Bytes(),
 				})
 				s.Assert().NoError(err)
-				s.Require().Equal(supply.Cap, big.NewInt(8e18).Bytes())
-				s.Require().Equal(supply.Supply, big.NewInt(3e18).Bytes())
+				s.Require().Equal(supply.Supply.Cap, big.NewInt(8e18).Bytes())
+				s.Require().Equal(supply.Supply.InitialSupply, big.NewInt(4e18).Bytes())
+				s.Require().Equal(supply.Supply.Supply, big.NewInt(3e18).Bytes())
 				// fmt.Println(wa0gi)
 			},
 			100000,
@@ -187,16 +188,12 @@ func (s *WrappedA0giBaseTestSuite) TestBurn() {
 		s.Run(tc.name, func() {
 			s.SetupTest()
 
-			fmt.Println(s.signerOne.Addr)
 			s.wa0gibasekeeper.SetWA0GIAddress(s.Ctx, s.signerOne.Addr)
 			s.wa0gibasekeeper.SetMinterCap(sdk.WrapSDKContext(s.Ctx), &types.MsgSetMinterCap{
-				Authority: govAccAddr,
-				Minter:    s.signerOne.Addr.Bytes(),
-				Cap:       big.NewInt(8e18).Bytes(),
-			})
-			s.wa0gibasekeeper.Mint(sdk.WrapSDKContext(s.Ctx), &types.MsgMint{
-				Minter: s.signerOne.Addr.Bytes(),
-				Amount: big.NewInt(4e18).Bytes(),
+				Authority:     govAccAddr,
+				Minter:        s.signerOne.Addr.Bytes(),
+				Cap:           big.NewInt(8e18).Bytes(),
+				InitialSupply: big.NewInt(4e18).Bytes(),
 			})
 
 			var err error

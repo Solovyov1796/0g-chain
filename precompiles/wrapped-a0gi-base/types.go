@@ -10,8 +10,9 @@ import (
 )
 
 type Supply = struct {
-	Cap   *big.Int "json:\"cap\""
-	Total *big.Int "json:\"total\""
+	Cap           *big.Int "json:\"cap\""
+	InitialSupply *big.Int "json:\"initialSupply\""
+	Supply        *big.Int "json:\"supply\""
 }
 
 func NewGetW0GIRequest(args []interface{}) (*types.GetWA0GIRequest, error) {

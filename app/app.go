@@ -267,7 +267,7 @@ type App struct {
 	packetForwardKeeper   *packetforwardkeeper.Keeper
 	evmKeeper             *evmkeeper.Keeper
 	evmutilKeeper         evmutilkeeper.Keeper
-	feeMarketKeeper       feemarketkeeper.Keeper
+	feeMarketKeeper       *feemarketkeeper.Keeper
 	upgradeKeeper         upgradekeeper.Keeper
 	evidenceKeeper        evidencekeeper.Keeper
 	transferKeeper        ibctransferkeeper.Keeper
@@ -489,6 +489,7 @@ func NewApp(
 		keys[feemarkettypes.StoreKey],
 		tkeys[feemarkettypes.TransientKey],
 		feemarketSubspace,
+		bApp.Mempool(),
 	)
 
 	app.evmutilKeeper = evmutilkeeper.NewKeeper(
