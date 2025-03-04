@@ -14,6 +14,8 @@ import (
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
 )
 
+const MAX_TXS_PRE_SENDER_IN_MEMPOOL int = 10
+
 var (
 	_ mempool.Mempool  = (*PriorityNonceMempool)(nil)
 	_ mempool.Iterator = (*PriorityNonceIterator)(nil)
@@ -27,13 +29,14 @@ var (
 // priority to other sender txs and must be partially ordered by both sender-nonce
 // and priority.
 type PriorityNonceMempool struct {
-	priorityIndex  *skiplist.SkipList
-	priorityCounts map[int64]int
-	senderIndices  map[string]*skiplist.SkipList
-	scores         map[txMeta]txMeta
-	onRead         func(tx sdk.Tx)
-	txReplacement  func(op, np int64, oTx, nTx sdk.Tx) bool
-	maxTx          int
+	priorityIndex   *skiplist.SkipList
+	priorityCounts  map[int64]int
+	senderIndices   map[string]*skiplist.SkipList
+	scores          map[txMeta]txMeta
+	onRead          func(tx sdk.Tx)
+	txReplacement   func(op, np int64, oTx, nTx sdk.Tx) bool
+	maxTx           int
+	counterBySender map[string]int
 }
 
 type PriorityNonceIterator struct {
@@ -129,10 +132,11 @@ func DefaultPriorityMempool() mempool.Mempool {
 // returns txs in a partial order by 2 dimensions; priority, and sender-nonce.
 func NewPriorityMempool(opts ...PriorityNonceMempoolOption) *PriorityNonceMempool {
 	mp := &PriorityNonceMempool{
-		priorityIndex:  skiplist.New(skiplist.LessThanFunc(txMetaLess)),
-		priorityCounts: make(map[int64]int),
-		senderIndices:  make(map[string]*skiplist.SkipList),
-		scores:         make(map[txMeta]txMeta),
+		priorityIndex:   skiplist.New(skiplist.LessThanFunc(txMetaLess)),
+		priorityCounts:  make(map[int64]int),
+		senderIndices:   make(map[string]*skiplist.SkipList),
+		scores:          make(map[txMeta]txMeta),
+		counterBySender: make(map[string]int),
 	}
 
 	for _, opt := range opts {
@@ -202,6 +206,16 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 		sig := sigs[0]
 		sender = sdk.AccAddress(sig.PubKey.Address()).String()
 		nonce = sig.Sequence
+	}
+
+	if _, exists := mp.counterBySender[sender]; !exists {
+		mp.counterBySender[sender] = 1
+	} else {
+		if mp.counterBySender[sender] < MAX_TXS_PRE_SENDER_IN_MEMPOOL {
+			mp.counterBySender[sender] += 1
+		} else {
+			return fmt.Errorf("tx sender has too many txs in mempool")
+		}
 	}
 
 	key := txMeta{nonce: nonce, priority: priority, sender: sender}
@@ -452,6 +466,14 @@ func (mp *PriorityNonceMempool) Remove(tx sdk.Tx) error {
 	senderTxs.Remove(tk)
 	delete(mp.scores, scoreKey)
 	mp.priorityCounts[score.priority]--
+
+	if _, exists := mp.counterBySender[sender]; exists {
+		if mp.counterBySender[sender] > 1 {
+			mp.counterBySender[sender] -= 1
+		} else {
+			delete(mp.counterBySender, sender)
+		}
+	}
 
 	return nil
 }
