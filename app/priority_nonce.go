@@ -2,12 +2,13 @@ package app
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"math"
 	"sync"
 
+	"fmt"
+	"math"
+
 	"github.com/huandu/skiplist"
+	"github.com/pkg/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
@@ -235,8 +236,8 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 		if mempoolSize >= mp.maxTx {
 			lowestPriority := mp.GetLowestPriority()
 			// find one to replace
-			if priority <= lowestPriority {
-				return errMempoolTxGasPriceTooLow
+			if lowestPriority > 0 && priority <= lowestPriority {
+				return errors.Wrapf(errMempoolTxGasPriceTooLow, "tx with priority %d is too low, current lowest priority is %d", priority, lowestPriority)
 			}
 
 			var maxIndexSize int
@@ -547,6 +548,10 @@ func (mp *PriorityNonceMempool) Remove(tx sdk.Tx) error {
 }
 
 func (mp *PriorityNonceMempool) GetLowestPriority() int64 {
+	if mp.priorityIndex.Len() == 0 {
+		return 0
+	}
+
 	min := int64(math.MaxInt64)
 	for priority, count := range mp.priorityCounts {
 		if count > 0 {
