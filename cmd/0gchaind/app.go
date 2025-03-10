@@ -129,7 +129,7 @@ func (ac appCreator) newApp(
 	)
 
 	mempool := app.NewPriorityMempool(
-		app.PriorityNonceWithMaxTx(cast.ToInt(appOpts.Get(server.FlagMempoolMaxTxs))),
+		app.PriorityNonceWithMaxTx(fixMempoolSize(appOpts)),
 		app.PriorityNonceWithTxReplacedCallback(func(ctx context.Context, oldTx, newTx sdk.Tx) {
 			bApp.RegisterMempoolTxReplacedEvent(ctx, oldTx, newTx)
 		}),
@@ -258,4 +258,24 @@ func extractTxInfo(ctx sdk.Context, tx sdk.Tx) (*sdk.TxInfo, error) {
 		GasPrice:      gasPrice,
 		TxType:        txType,
 	}, nil
+}
+
+func fixMempoolSize(appOpts servertypes.AppOptions) int {
+	val1 := appOpts.Get("mempool.size")
+	val2 := appOpts.Get(server.FlagMempoolMaxTxs)
+
+	if val1 != nil && val2 != nil {
+		size1 := cast.ToInt(val1)
+		size2 := cast.ToInt(val2)
+		if size1 != size2 {
+			panic("the value of mempool.size and mempool.max-txs are different")
+		}
+		return size1
+	} else if val1 == nil && val2 == nil {
+		panic("not found mempool size in config")
+	} else if val1 == nil {
+		return cast.ToInt(val2)
+	} else { //if val2 == nil {
+		return cast.ToInt(val1)
+	}
 }
