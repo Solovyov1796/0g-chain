@@ -38,6 +38,8 @@ type PriorityNonceMempool struct {
 	maxTx           int
 	counterBySender map[string]int
 	txRecord        map[txMeta]struct{}
+
+	txReplacedCallback func(ctx context.Context, oldTx, newTx sdk.Tx)
 }
 
 type PriorityNonceIterator struct {
@@ -124,6 +126,12 @@ func PriorityNonceWithMaxTx(maxTx int) PriorityNonceMempoolOption {
 	}
 }
 
+func PriorityNonceWithTxReplacedCallback(cb func(ctx context.Context, oldTx, newTx sdk.Tx)) PriorityNonceMempoolOption {
+	return func(mp *PriorityNonceMempool) {
+		mp.txReplacedCallback = cb
+	}
+}
+
 // DefaultPriorityMempool returns a priorityNonceMempool with no options.
 func DefaultPriorityMempool() mempool.Mempool {
 	return NewPriorityMempool()
@@ -184,6 +192,7 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 	sdkContext := sdk.UnwrapSDKContext(ctx)
 	priority := sdkContext.Priority()
 
+	var replacedTx sdk.Tx
 	var sender string
 	var nonce uint64
 
@@ -244,6 +253,7 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 	//
 	// This O(log n) remove operation is rare and only happens when a tx's priority
 	// changes.
+
 	sk := txMeta{nonce: nonce, sender: sender}
 	if oldScore, txExists := mp.scores[sk]; txExists {
 		if mp.txReplacement != nil && !mp.txReplacement(oldScore.priority, priority, senderIndex.Get(key).Value.(sdk.Tx), tx) {
@@ -256,12 +266,13 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 			)
 		}
 
-		mp.priorityIndex.Remove(txMeta{
+		e := mp.priorityIndex.Remove(txMeta{
 			nonce:    nonce,
 			sender:   sender,
 			priority: oldScore.priority,
 			weight:   oldScore.weight,
 		})
+		replacedTx = e.Value.(sdk.Tx)
 		mp.priorityCounts[oldScore.priority]--
 	}
 
@@ -273,6 +284,10 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 
 	mp.scores[sk] = txMeta{priority: priority}
 	mp.priorityIndex.Set(key, tx)
+
+	if mp.txReplacedCallback != nil && replacedTx != nil {
+		mp.txReplacedCallback(ctx, replacedTx, tx)
+	}
 
 	return nil
 }

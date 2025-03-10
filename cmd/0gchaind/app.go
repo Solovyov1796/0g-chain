@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -129,6 +130,9 @@ func (ac appCreator) newApp(
 
 	mempool := app.NewPriorityMempool(
 		app.PriorityNonceWithMaxTx(cast.ToInt(appOpts.Get(server.FlagMempoolMaxTxs))),
+		app.PriorityNonceWithTxReplacedCallback(func(ctx context.Context, oldTx, newTx sdk.Tx) {
+			bApp.RegisterMempoolTxReplacedEvent(ctx, oldTx, newTx)
+		}),
 	)
 	bApp.SetMempool(mempool)
 
