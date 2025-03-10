@@ -203,7 +203,7 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 	}
 
 	if !mp.canInsert(txInfo.sender) {
-		return errMempoolTooManyTxs
+		return errors.Wrapf(errMempoolTooManyTxs, "sender %s has too many txs in mempool", txInfo.sender)
 	}
 
 	// init sender index if not exists
