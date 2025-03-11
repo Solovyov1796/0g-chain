@@ -230,7 +230,7 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 	sk := txMeta{nonce: txInfo.nonce, sender: txInfo.sender}
 	if oldScore, txExists := mp.scores[sk]; txExists {
 		oldTx := senderIndex.Get(newKey).Value.(sdk.Tx)
-		return mp.doTxReplace(ctx, senderIndex, newKey, oldScore, oldTx, tx)
+		return mp.doTxReplace(ctx, newKey, oldScore, oldTx, tx)
 	} else {
 		mempoolSize := mp.CountTx()
 		if mempoolSize >= mp.maxTx {
@@ -340,7 +340,7 @@ func (mp *PriorityNonceMempool) doRemove(oldKey txMeta, decrCnt bool) (sdk.Tx, e
 	return removedElem.Value.(sdk.Tx), nil
 }
 
-func (mp *PriorityNonceMempool) doTxReplace(ctx context.Context, index *skiplist.SkipList, newMate, oldMate txMeta, oldTx, newTx sdk.Tx) error {
+func (mp *PriorityNonceMempool) doTxReplace(ctx context.Context, newMate, oldMate txMeta, oldTx, newTx sdk.Tx) error {
 	if mp.txReplacement != nil && !mp.txReplacement(oldMate.priority, newMate.priority, oldTx, newTx) {
 		return fmt.Errorf(
 			"tx doesn't fit the replacement rule, oldPriority: %v, newPriority: %v, oldTx: %v, newTx: %v",
