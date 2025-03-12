@@ -38,6 +38,8 @@ const (
 	flagSkipLoadLatest       = "skip-load-latest"
 )
 
+var accountNonceOp app.AccountNonceOp
+
 // appCreator holds functions used by the sdk server to control the 0g-chain app.
 // The methods implement types in cosmos-sdk/server/types
 type appCreator struct {
@@ -130,8 +132,19 @@ func (ac appCreator) newApp(
 
 	mempool := app.NewPriorityMempool(
 		app.PriorityNonceWithMaxTx(fixMempoolSize(appOpts)),
-		app.PriorityNonceWithTxReplacedCallback(func(ctx context.Context, oldTx, newTx sdk.Tx) {
-			bApp.RegisterMempoolTxReplacedEvent(ctx, oldTx, newTx)
+		app.PriorityNonceWithTxReplacedCallback(func(ctx context.Context, oldTx, newTx *app.TxInfo) {
+			if oldTx.Sender != newTx.Sender {
+				sdkContext := sdk.UnwrapSDKContext(ctx)
+				if accountNonceOp != nil {
+					nonce := accountNonceOp.GetAccountNonce(sdkContext, oldTx.Sender)
+					accountNonceOp.SetAccountNonce(sdkContext, oldTx.Sender, nonce-1)
+					sdkContext.Logger().Debug("rewind the nonce of the account", "account", oldTx.Sender, "from", nonce, "to", nonce-1)
+				}
+			} else {
+				sdkContext := sdk.UnwrapSDKContext(ctx)
+				sdkContext.Logger().Info("tx replace", "account", oldTx.Sender, "nonce", oldTx.Nonce)
+			}
+			bApp.RegisterMempoolTxReplacedEvent(ctx, oldTx.Tx, newTx.Tx)
 		}),
 	)
 	bApp.SetMempool(mempool)
@@ -154,6 +167,8 @@ func (ac appCreator) newApp(
 		},
 		bApp,
 	)
+
+	accountNonceOp = app.NewAccountNonceOp(newApp)
 
 	return newApp
 }
