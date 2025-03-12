@@ -1068,3 +1068,31 @@ func GetMaccPerms() map[string][]string {
 	}
 	return perms
 }
+
+type accountNonceOp struct {
+	ak evmtypes.AccountKeeper
+}
+
+type AccountNonceOp interface {
+	GetAccountNonce(ctx sdk.Context, address string) uint64
+	SetAccountNonce(ctx sdk.Context, address string, nonce uint64)
+}
+
+func NewAccountNonceOp(app *App) AccountNonceOp {
+	return &accountNonceOp{
+		ak: app.accountKeeper,
+	}
+}
+
+func (ano *accountNonceOp) GetAccountNonce(ctx sdk.Context, address string) uint64 {
+	bzAcc, _ := sdk.AccAddressFromBech32(address)
+	acc := ano.ak.GetAccount(ctx, bzAcc)
+	return acc.GetSequence()
+}
+
+func (ano *accountNonceOp) SetAccountNonce(ctx sdk.Context, address string, nonce uint64) {
+	bzAcc, _ := sdk.AccAddressFromBech32(address)
+	acc := ano.ak.GetAccount(ctx, bzAcc)
+	acc.SetSequence(nonce)
+	ano.ak.SetAccount(ctx, acc)
+}
