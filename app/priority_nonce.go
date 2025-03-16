@@ -17,7 +17,7 @@ import (
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
 )
 
-const MAX_TXS_PRE_SENDER_IN_MEMPOOL int = 16
+const MAX_TXS_PRE_SENDER_IN_MEMPOOL int = 48
 
 var (
 	_ mempool.Mempool  = (*PriorityNonceMempool)(nil)
