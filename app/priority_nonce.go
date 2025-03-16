@@ -495,6 +495,16 @@ func (mp *PriorityNonceMempool) doSelect(_ context.Context, _ [][]byte) mempool.
 	return iterator.iteratePriority()
 }
 
+func (mp *PriorityNonceMempool) GetSenderUncommittedTxnCount(ctx context.Context, sender string) int {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	if _, exists := mp.counterBySender[sender]; exists {
+		return mp.counterBySender[sender]
+	}
+	return 0
+}
+
 type reorderKey struct {
 	deleteKey txMeta
 	insertKey txMeta
