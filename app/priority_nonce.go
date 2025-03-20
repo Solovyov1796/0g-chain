@@ -258,7 +258,7 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 					continue
 				}
 
-				if indexSize > 1 {
+				if indexSize > 0 {
 					tail := index.Back()
 					if tail != nil {
 						tailKey := tail.Key().(txMeta)
@@ -291,8 +291,6 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 					)
 				}
 			} else {
-				// not found any index more than 1 except sender's index
-				// We do not replace the sender's only tx in the mempool
 				return errors.Wrapf(errMempoolIsFull, "%d@%s with priority%d", newKey.nonce, newKey.sender, newKey.priority)
 			}
 		} else {
