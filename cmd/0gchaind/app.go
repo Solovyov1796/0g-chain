@@ -137,8 +137,12 @@ func (ac appCreator) newApp(
 				sdkContext := sdk.UnwrapSDKContext(ctx)
 				if accountNonceOp != nil {
 					nonce := accountNonceOp.GetAccountNonce(sdkContext, oldTx.Sender)
-					accountNonceOp.SetAccountNonce(sdkContext, oldTx.Sender, nonce-1)
-					sdkContext.Logger().Debug("rewind the nonce of the account", "account", oldTx.Sender, "from", nonce, "to", nonce-1)
+					if nonce > 0 {
+						accountNonceOp.SetAccountNonce(sdkContext, oldTx.Sender, nonce-1)
+						sdkContext.Logger().Debug("rewind the nonce of the account", "account", oldTx.Sender, "from", nonce, "to", nonce-1)
+					} else {
+						sdkContext.Logger().Info("First meeting account", "account", oldTx.Sender)
+					}
 				}
 			} else {
 				sdkContext := sdk.UnwrapSDKContext(ctx)

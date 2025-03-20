@@ -1085,14 +1085,30 @@ func NewAccountNonceOp(app *App) AccountNonceOp {
 }
 
 func (ano *accountNonceOp) GetAccountNonce(ctx sdk.Context, address string) uint64 {
-	bzAcc, _ := sdk.AccAddressFromBech32(address)
+	bzAcc, err := sdk.AccAddressFromBech32(address)
+	if err != nil {
+		ctx.Logger().Error("GetAccountNonce: failed to parse address", "address", address, "error", err)
+		return 0
+	}
 	acc := ano.ak.GetAccount(ctx, bzAcc)
+	if acc == nil {
+		ctx.Logger().Error("GetAccountNonce: account not found", "address", address)
+		return 0
+	}
 	return acc.GetSequence()
 }
 
 func (ano *accountNonceOp) SetAccountNonce(ctx sdk.Context, address string, nonce uint64) {
-	bzAcc, _ := sdk.AccAddressFromBech32(address)
+	bzAcc, err := sdk.AccAddressFromBech32(address)
+	if err != nil {
+		ctx.Logger().Error("SetAccountNonce: failed to parse address", "address", address, "nonce", nonce, "error", err)
+		return
+	}
 	acc := ano.ak.GetAccount(ctx, bzAcc)
-	acc.SetSequence(nonce)
-	ano.ak.SetAccount(ctx, acc)
+	if acc != nil {
+		acc.SetSequence(nonce)
+		ano.ak.SetAccount(ctx, acc)
+	} else {
+		ctx.Logger().Error("SetAccountNonce: account not found", "address", address)
+	}
 }
