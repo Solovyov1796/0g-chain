@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	snapshottypes "github.com/cosmos/cosmos-sdk/snapshots/types"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	ethermintflags "github.com/evmos/ethermint/server/flags"
 	"github.com/spf13/cast"
@@ -26,6 +28,8 @@ import (
 
 	"github.com/0glabs/0g-chain/app"
 	"github.com/0glabs/0g-chain/app/params"
+	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	evmtypes "github.com/evmos/ethermint/x/evm/types"
 )
 
 const (
@@ -33,6 +37,8 @@ const (
 	flagMempoolAuthAddresses = "mempool.authorized-addresses"
 	flagSkipLoadLatest       = "skip-load-latest"
 )
+
+var accountNonceOp app.AccountNonceOp
 
 // appCreator holds functions used by the sdk server to control the 0g-chain app.
 // The methods implement types in cosmos-sdk/server/types
@@ -107,8 +113,6 @@ func (ac appCreator) newApp(
 		skipLoadLatest = cast.ToBool(appOpts.Get(flagSkipLoadLatest))
 	}
 
-	mempool := app.NewPriorityMempool()
-
 	bApp := app.NewBaseApp(logger, db, ac.encodingConfig,
 		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(strings.Replace(cast.ToString(appOpts.Get(server.FlagMinGasPrices)), ";", ",", -1)),
@@ -123,8 +127,32 @@ func (ac appCreator) newApp(
 		baseapp.SetIAVLDisableFastNode(cast.ToBool(iavlDisableFastNode)),
 		baseapp.SetIAVLLazyLoading(cast.ToBool(appOpts.Get(server.FlagIAVLLazyLoading))),
 		baseapp.SetChainID(chainID),
-		baseapp.SetMempool(mempool),
+		baseapp.SetTxInfoExtracter(extractTxInfo),
 	)
+
+	mempool := app.NewPriorityMempool(
+		app.PriorityNonceWithMaxTx(fixMempoolSize(appOpts)),
+		app.PriorityNonceWithTxReplacedCallback(func(ctx context.Context, oldTx, newTx *app.TxInfo) {
+			if oldTx.Sender != newTx.Sender {
+				sdkContext := sdk.UnwrapSDKContext(ctx)
+				if accountNonceOp != nil {
+					nonce := accountNonceOp.GetAccountNonce(sdkContext, oldTx.Sender)
+					if nonce > 0 {
+						accountNonceOp.SetAccountNonce(sdkContext, oldTx.Sender, nonce-1)
+						sdkContext.Logger().Debug("rewind the nonce of the account", "account", oldTx.Sender, "from", nonce, "to", nonce-1)
+					} else {
+						sdkContext.Logger().Info("First meeting account", "account", oldTx.Sender)
+					}
+				}
+			} else {
+				sdkContext := sdk.UnwrapSDKContext(ctx)
+				sdkContext.Logger().Info("tx replace", "account", oldTx.Sender, "nonce", oldTx.Nonce)
+			}
+			bApp.RegisterMempoolTxReplacedEvent(ctx, oldTx.Tx, newTx.Tx)
+		}),
+	)
+	bApp.SetMempool(mempool)
+
 	bApp.SetTxEncoder(ac.encodingConfig.TxConfig.TxEncoder())
 	abciProposalHandler := app.NewDefaultProposalHandler(mempool, bApp)
 	bApp.SetPrepareProposal(abciProposalHandler.PrepareProposalHandler())
@@ -143,6 +171,8 @@ func (ac appCreator) newApp(
 		},
 		bApp,
 	)
+
+	accountNonceOp = app.NewAccountNonceOp(newApp)
 
 	return newApp
 }
@@ -198,4 +228,73 @@ func accAddressesFromBech32(addresses ...string) ([]sdk.AccAddress, error) {
 		decodedAddresses = append(decodedAddresses, a)
 	}
 	return decodedAddresses, nil
+}
+
+var ErrMustHaveSigner error = errors.New("tx must have at least one signer")
+
+func extractTxInfo(ctx sdk.Context, tx sdk.Tx) (*sdk.TxInfo, error) {
+	sigs, err := tx.(signing.SigVerifiableTx).GetSignaturesV2()
+	if err != nil {
+		return nil, err
+	}
+
+	var sender string
+	var nonce uint64
+	var gasPrice uint64
+	var gasLimit uint64
+	var txType int32
+
+	if len(sigs) == 0 {
+		txType = 1
+		msgs := tx.GetMsgs()
+		if len(msgs) != 1 {
+			return nil, ErrMustHaveSigner
+		}
+		msgEthTx, ok := msgs[0].(*evmtypes.MsgEthereumTx)
+		if !ok {
+			return nil, ErrMustHaveSigner
+		}
+		ethTx := msgEthTx.AsTransaction()
+		signer := gethtypes.NewEIP2930Signer(ethTx.ChainId())
+		ethSender, err := signer.Sender(ethTx)
+		if err != nil {
+			return nil, ErrMustHaveSigner
+		}
+		sender = sdk.AccAddress(ethSender.Bytes()).String()
+		nonce = ethTx.Nonce()
+		gasPrice = ethTx.GasPrice().Uint64()
+		gasLimit = ethTx.Gas()
+	} else {
+		sig := sigs[0]
+		sender = sdk.AccAddress(sig.PubKey.Address()).String()
+		nonce = sig.Sequence
+	}
+
+	return &sdk.TxInfo{
+		SignerAddress: sender,
+		Nonce:         nonce,
+		GasLimit:      gasLimit,
+		GasPrice:      gasPrice,
+		TxType:        txType,
+	}, nil
+}
+
+func fixMempoolSize(appOpts servertypes.AppOptions) int {
+	val1 := appOpts.Get("mempool.size")
+	val2 := appOpts.Get(server.FlagMempoolMaxTxs)
+
+	if val1 != nil && val2 != nil {
+		size1 := cast.ToInt(val1)
+		size2 := cast.ToInt(val2)
+		if size1 != size2 {
+			panic("the value of mempool.size and mempool.max-txs are different")
+		}
+		return size1
+	} else if val1 == nil && val2 == nil {
+		panic("not found mempool size in config")
+	} else if val1 == nil {
+		return cast.ToInt(val2)
+	} else { //if val2 == nil {
+		return cast.ToInt(val1)
+	}
 }

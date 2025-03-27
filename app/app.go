@@ -1068,3 +1068,47 @@ func GetMaccPerms() map[string][]string {
 	}
 	return perms
 }
+
+type accountNonceOp struct {
+	ak evmtypes.AccountKeeper
+}
+
+type AccountNonceOp interface {
+	GetAccountNonce(ctx sdk.Context, address string) uint64
+	SetAccountNonce(ctx sdk.Context, address string, nonce uint64)
+}
+
+func NewAccountNonceOp(app *App) AccountNonceOp {
+	return &accountNonceOp{
+		ak: app.accountKeeper,
+	}
+}
+
+func (ano *accountNonceOp) GetAccountNonce(ctx sdk.Context, address string) uint64 {
+	bzAcc, err := sdk.AccAddressFromBech32(address)
+	if err != nil {
+		ctx.Logger().Error("GetAccountNonce: failed to parse address", "address", address, "error", err)
+		return 0
+	}
+	acc := ano.ak.GetAccount(ctx, bzAcc)
+	if acc == nil {
+		ctx.Logger().Error("GetAccountNonce: account not found", "address", address)
+		return 0
+	}
+	return acc.GetSequence()
+}
+
+func (ano *accountNonceOp) SetAccountNonce(ctx sdk.Context, address string, nonce uint64) {
+	bzAcc, err := sdk.AccAddressFromBech32(address)
+	if err != nil {
+		ctx.Logger().Error("SetAccountNonce: failed to parse address", "address", address, "nonce", nonce, "error", err)
+		return
+	}
+	acc := ano.ak.GetAccount(ctx, bzAcc)
+	if acc != nil {
+		acc.SetSequence(nonce)
+		ano.ak.SetAccount(ctx, acc)
+	} else {
+		ctx.Logger().Error("SetAccountNonce: account not found", "address", address)
+	}
+}
