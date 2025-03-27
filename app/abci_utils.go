@@ -1,9 +1,9 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
@@ -97,11 +97,12 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 			return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 		}
 
-		iterator := h.mempool.Select(ctx, req.Txs)
 		selectedTxsSignersSeqs := make(map[string]uint64)
 		var selectedTxsNums int
-		for iterator != nil {
-			memTx := iterator.Tx()
+
+		var waitRemoveTxs []sdk.Tx
+
+		mempool.SelectBy(ctx, h.mempool, req.Txs, func(memTx sdk.Tx) bool {
 			sigs, err := memTx.(signing.SigVerifiableTx).GetSignaturesV2()
 			if err != nil {
 				panic(fmt.Errorf("failed to get signatures: %w", err))
@@ -157,47 +158,49 @@ func (h *DefaultProposalHandler) PrepareProposalHandler() sdk.PrepareProposalHan
 				}
 			}
 
-			if !shouldAdd {
-				iterator = iterator.Next()
-				continue
-			}
-
-			// NOTE: Since transaction verification was already executed in CheckTx,
-			// which calls mempool.Insert, in theory everything in the pool should be
-			// valid. But some mempool implementations may insert invalid txs, so we
-			// check again.
-			txBz, err := h.txVerifier.PrepareProposalVerifyTx(memTx)
-			if err != nil {
-				err := h.mempool.Remove(memTx)
-				if err != nil && !errors.Is(err, mempool.ErrTxNotFound) {
-					panic(err)
-				}
-			} else {
-				stop := h.txSelector.SelectTxForProposal(uint64(req.MaxTxBytes), maxBlockGas, memTx, txBz)
-				if stop {
-					break
-				}
-
-				txsLen := len(h.txSelector.SelectedTxs())
-				for sender, seq := range txSignersSeqs {
-					// If txsLen != selectedTxsNums is true, it means that we've
-					// added a new tx to the selected txs, so we need to update
-					// the sequence of the sender.
-					if txsLen != selectedTxsNums {
-						selectedTxsSignersSeqs[sender] = seq
-					} else if _, ok := selectedTxsSignersSeqs[sender]; !ok {
-						// The transaction hasn't been added but it passed the
-						// verification, so we know that the sequence is correct.
-						// So we set this sender's sequence to seq-1, in order
-						// to avoid unnecessary calls to PrepareProposalVerifyTx.
-						selectedTxsSignersSeqs[sender] = seq - 1
+			if shouldAdd {
+				// NOTE: Since transaction verification was already executed in CheckTx,
+				// which calls mempool.Insert, in theory everything in the pool should be
+				// valid. But some mempool implementations may insert invalid txs, so we
+				// check again.
+				txBz, err := h.txVerifier.PrepareProposalVerifyTx(memTx)
+				if err != nil {
+					waitRemoveTxs = append(waitRemoveTxs, memTx)
+				} else {
+					stop := h.txSelector.SelectTxForProposal(uint64(req.MaxTxBytes), maxBlockGas, memTx, txBz)
+					if stop {
+						return false
 					}
+
+					txsLen := len(h.txSelector.SelectedTxs())
+					for sender, seq := range txSignersSeqs {
+						// If txsLen != selectedTxsNums is true, it means that we've
+						// added a new tx to the selected txs, so we need to update
+						// the sequence of the sender.
+						if txsLen != selectedTxsNums {
+							selectedTxsSignersSeqs[sender] = seq
+						} else if _, ok := selectedTxsSignersSeqs[sender]; !ok {
+							// The transaction hasn't been added but it passed the
+							// verification, so we know that the sequence is correct.
+							// So we set this sender's sequence to seq-1, in order
+							// to avoid unnecessary calls to PrepareProposalVerifyTx.
+							selectedTxsSignersSeqs[sender] = seq - 1
+						}
+					}
+					selectedTxsNums = txsLen
 				}
-				selectedTxsNums = txsLen
 			}
 
-			iterator = iterator.Next()
+			return true
+		})
+
+		for i := range waitRemoveTxs {
+			err := h.mempool.Remove(waitRemoveTxs[i])
+			if err != nil && !errors.Is(err, mempool.ErrTxNotFound) {
+				panic(err)
+			}
 		}
+
 		return abci.ResponsePrepareProposal{Txs: h.txSelector.SelectedTxs()}
 	}
 }

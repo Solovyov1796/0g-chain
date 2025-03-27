@@ -2,10 +2,13 @@ package app
 
 import (
 	"context"
+	"sync"
+
 	"fmt"
 	"math"
 
 	"github.com/huandu/skiplist"
+	"github.com/pkg/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
@@ -14,9 +17,16 @@ import (
 	evmtypes "github.com/evmos/ethermint/x/evm/types"
 )
 
+const MAX_TXS_PRE_SENDER_IN_MEMPOOL int = 48
+
 var (
 	_ mempool.Mempool  = (*PriorityNonceMempool)(nil)
 	_ mempool.Iterator = (*PriorityNonceIterator)(nil)
+
+	errMempoolTxGasPriceTooLow = errors.New("gas price is too low")
+	errMempoolTooManyTxs       = errors.New("tx sender has too many txs in mempool")
+	errMempoolIsFull           = errors.New("mempool is full")
+	errTxInMempool             = errors.New("tx already in mempool")
 )
 
 // PriorityNonceMempool is a mempool implementation that stores txs
@@ -27,6 +37,7 @@ var (
 // priority to other sender txs and must be partially ordered by both sender-nonce
 // and priority.
 type PriorityNonceMempool struct {
+	mtx            sync.Mutex
 	priorityIndex  *skiplist.SkipList
 	priorityCounts map[int64]int
 	senderIndices  map[string]*skiplist.SkipList
@@ -34,6 +45,12 @@ type PriorityNonceMempool struct {
 	onRead         func(tx sdk.Tx)
 	txReplacement  func(op, np int64, oTx, nTx sdk.Tx) bool
 	maxTx          int
+
+	senderTxCntLock sync.RWMutex
+	counterBySender map[string]int
+	txRecord        map[txMeta]struct{}
+
+	txReplacedCallback func(ctx context.Context, oldTx, newTx *TxInfo)
 }
 
 type PriorityNonceIterator struct {
@@ -120,6 +137,12 @@ func PriorityNonceWithMaxTx(maxTx int) PriorityNonceMempoolOption {
 	}
 }
 
+func PriorityNonceWithTxReplacedCallback(cb func(ctx context.Context, oldTx, newTx *TxInfo)) PriorityNonceMempoolOption {
+	return func(mp *PriorityNonceMempool) {
+		mp.txReplacedCallback = cb
+	}
+}
+
 // DefaultPriorityMempool returns a priorityNonceMempool with no options.
 func DefaultPriorityMempool() mempool.Mempool {
 	return NewPriorityMempool()
@@ -129,10 +152,12 @@ func DefaultPriorityMempool() mempool.Mempool {
 // returns txs in a partial order by 2 dimensions; priority, and sender-nonce.
 func NewPriorityMempool(opts ...PriorityNonceMempoolOption) *PriorityNonceMempool {
 	mp := &PriorityNonceMempool{
-		priorityIndex:  skiplist.New(skiplist.LessThanFunc(txMetaLess)),
-		priorityCounts: make(map[int64]int),
-		senderIndices:  make(map[string]*skiplist.SkipList),
-		scores:         make(map[txMeta]txMeta),
+		priorityIndex:   skiplist.New(skiplist.LessThanFunc(txMetaLess)),
+		priorityCounts:  make(map[int64]int),
+		senderIndices:   make(map[string]*skiplist.SkipList),
+		scores:          make(map[txMeta]txMeta),
+		counterBySender: make(map[string]int),
+		txRecord:        make(map[txMeta]struct{}),
 	}
 
 	for _, opt := range opts {
@@ -165,56 +190,40 @@ func (mp *PriorityNonceMempool) NextSenderTx(sender string) sdk.Tx {
 // Inserting a duplicate tx with a different priority overwrites the existing tx,
 // changing the total order of the mempool.
 func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
-	if mp.maxTx > 0 && mp.CountTx() >= mp.maxTx {
-		return mempool.ErrMempoolTxMaxCapacity
-	} else if mp.maxTx < 0 {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	// if mp.maxTx > 0 && mp.CountTx() >= mp.maxTx {
+	// 	return mempool.ErrMempoolTxMaxCapacity
+	// } else
+	if mp.maxTx < 0 {
 		return nil
 	}
 
-	sigs, err := tx.(signing.SigVerifiableTx).GetSignaturesV2()
-	if err != nil {
-		return err
-	}
 	sdkContext := sdk.UnwrapSDKContext(ctx)
 	priority := sdkContext.Priority()
 
-	var sender string
-	var nonce uint64
-
-	if len(sigs) == 0 {
-		msgs := tx.GetMsgs()
-		if len(msgs) != 1 {
-			return fmt.Errorf("tx must have at least one signer")
-		}
-		msgEthTx, ok := msgs[0].(*evmtypes.MsgEthereumTx)
-		if !ok {
-			return fmt.Errorf("tx must have at least one signer")
-		}
-		ethTx := msgEthTx.AsTransaction()
-		signer := gethtypes.NewEIP2930Signer(ethTx.ChainId())
-		ethSender, err := signer.Sender(ethTx)
-		if err != nil {
-			return fmt.Errorf("tx must have at least one signer")
-		}
-		sender = sdk.AccAddress(ethSender.Bytes()).String()
-		nonce = ethTx.Nonce()
-	} else {
-		sig := sigs[0]
-		sender = sdk.AccAddress(sig.PubKey.Address()).String()
-		nonce = sig.Sequence
+	txInfo, err := extractTxInfo(tx)
+	if err != nil {
+		return err
 	}
 
-	key := txMeta{nonce: nonce, priority: priority, sender: sender}
+	if !mp.canInsert(txInfo.Sender) {
+		return errors.Wrapf(errMempoolTooManyTxs, "[%d@%s]sender has too many txs in mempool", txInfo.Nonce, txInfo.Sender)
+	}
 
-	senderIndex, ok := mp.senderIndices[sender]
+	// init sender index if not exists
+	senderIndex, ok := mp.senderIndices[txInfo.Sender]
 	if !ok {
 		senderIndex = skiplist.New(skiplist.LessThanFunc(func(a, b any) int {
 			return skiplist.Uint64.Compare(b.(txMeta).nonce, a.(txMeta).nonce)
 		}))
 
 		// initialize sender index if not found
-		mp.senderIndices[sender] = senderIndex
+		mp.senderIndices[txInfo.Sender] = senderIndex
 	}
+
+	newKey := txMeta{nonce: txInfo.Nonce, priority: priority, sender: txInfo.Sender}
 
 	// Since mp.priorityIndex is scored by priority, then sender, then nonce, a
 	// changed priority will create a new key, so we must remove the old key and
@@ -223,35 +232,155 @@ func (mp *PriorityNonceMempool) Insert(ctx context.Context, tx sdk.Tx) error {
 	//
 	// This O(log n) remove operation is rare and only happens when a tx's priority
 	// changes.
-	sk := txMeta{nonce: nonce, sender: sender}
-	if oldScore, txExists := mp.scores[sk]; txExists {
-		if mp.txReplacement != nil && !mp.txReplacement(oldScore.priority, priority, senderIndex.Get(key).Value.(sdk.Tx), tx) {
-			return fmt.Errorf(
-				"tx doesn't fit the replacement rule, oldPriority: %v, newPriority: %v, oldTx: %v, newTx: %v",
-				oldScore.priority,
-				priority,
-				senderIndex.Get(key).Value.(sdk.Tx),
-				tx,
-			)
-		}
 
-		mp.priorityIndex.Remove(txMeta{
-			nonce:    nonce,
-			sender:   sender,
-			priority: oldScore.priority,
-			weight:   oldScore.weight,
-		})
-		mp.priorityCounts[oldScore.priority]--
+	sk := txMeta{nonce: txInfo.Nonce, sender: txInfo.Sender}
+	if oldScore, txExists := mp.scores[sk]; txExists {
+		if oldScore.priority < priority {
+			oldTx := senderIndex.Get(newKey).Value.(sdk.Tx)
+			return mp.doTxReplace(ctx, newKey, oldScore, oldTx, tx)
+		}
+		return errors.Wrapf(errTxInMempool, "[%d@%s] tx already in mempool", txInfo.Nonce, txInfo.Sender)
+	} else {
+		mempoolSize := mp.priorityIndex.Len()
+		if mempoolSize >= mp.maxTx {
+			lowestPriority := mp.getLowestPriority()
+			// find one to replace
+			if lowestPriority > 0 && priority <= lowestPriority {
+				return errors.Wrapf(errMempoolTxGasPriceTooLow, "[%d@%s]tx with priority %d is too low, current lowest priority is %d", newKey.nonce, newKey.sender, priority, lowestPriority)
+			}
+
+			var maxIndexSize int
+			var lowerPriority int64 = math.MaxInt64
+			var selectedElement *skiplist.Element
+			for sender, index := range mp.senderIndices {
+				indexSize := index.Len()
+				if sender == txInfo.Sender {
+					continue
+				}
+
+				if indexSize > 0 {
+					tail := index.Back()
+					if tail != nil {
+						tailKey := tail.Key().(txMeta)
+						if tailKey.priority < lowerPriority {
+							lowerPriority = tailKey.priority
+							maxIndexSize = indexSize
+							selectedElement = tail
+						} else if tailKey.priority == lowerPriority {
+							if indexSize > maxIndexSize {
+								maxIndexSize = indexSize
+								selectedElement = tail
+							}
+						}
+					}
+				}
+			}
+
+			if selectedElement != nil {
+				key := selectedElement.Key().(txMeta)
+				replacedTx, _ := mp.doRemove(key, true)
+
+				// insert new tx
+				mp.doInsert(newKey, tx, true)
+
+				if mp.txReplacedCallback != nil && replacedTx != nil {
+					sdkContext.Logger().Debug("txn replaced caused by full of mempool", "old", fmt.Sprintf("%d@%s", key.nonce, key.sender), "new", fmt.Sprintf("%d@%s", newKey.nonce, newKey.sender), "mempoolSize", mempoolSize)
+					mp.txReplacedCallback(ctx,
+						&TxInfo{Sender: key.sender, Nonce: key.nonce, Tx: replacedTx},
+						&TxInfo{Sender: newKey.sender, Nonce: newKey.nonce, Tx: tx},
+					)
+				}
+			} else {
+				return errors.Wrapf(errMempoolIsFull, "%d@%s with priority%d", newKey.nonce, newKey.sender, newKey.priority)
+			}
+		} else {
+			mp.doInsert(newKey, tx, true)
+		}
+		return nil
+	}
+}
+
+func (mp *PriorityNonceMempool) doInsert(newKey txMeta, tx sdk.Tx, incrCnt bool) {
+	senderIndex, ok := mp.senderIndices[newKey.sender]
+	if !ok {
+		senderIndex = skiplist.New(skiplist.LessThanFunc(func(a, b any) int {
+			return skiplist.Uint64.Compare(b.(txMeta).nonce, a.(txMeta).nonce)
+		}))
+
+		// initialize sender index if not found
+		mp.senderIndices[newKey.sender] = senderIndex
 	}
 
-	mp.priorityCounts[priority]++
+	mp.priorityCounts[newKey.priority]++
+	newKey.senderElement = senderIndex.Set(newKey, tx)
 
-	// Since senderIndex is scored by nonce, a changed priority will overwrite the
-	// existing key.
-	key.senderElement = senderIndex.Set(key, tx)
+	mp.scores[txMeta{nonce: newKey.nonce, sender: newKey.sender}] = txMeta{priority: newKey.priority}
+	mp.priorityIndex.Set(newKey, tx)
 
-	mp.scores[sk] = txMeta{priority: priority}
-	mp.priorityIndex.Set(key, tx)
+	if incrCnt {
+		mp.incrSenderTxCnt(newKey.sender, newKey.nonce)
+	}
+}
+
+func (mp *PriorityNonceMempool) doRemove(oldKey txMeta, decrCnt bool) (sdk.Tx, error) {
+	scoreKey := txMeta{nonce: oldKey.nonce, sender: oldKey.sender}
+	score, ok := mp.scores[scoreKey]
+	if !ok {
+		return nil, errors.Wrapf(mempool.ErrTxNotFound, "%d@%s not found", oldKey.nonce, oldKey.sender)
+	}
+	tk := txMeta{nonce: oldKey.nonce, priority: score.priority, sender: oldKey.sender, weight: score.weight}
+
+	senderTxs, ok := mp.senderIndices[oldKey.sender]
+	if !ok {
+		return nil, fmt.Errorf("%d@%s not found", oldKey.nonce, oldKey.sender)
+	}
+
+	mp.priorityIndex.Remove(tk)
+	removedElem := senderTxs.Remove(tk)
+	delete(mp.scores, scoreKey)
+	mp.priorityCounts[score.priority]--
+
+	if decrCnt {
+		mp.decrSenderTxCnt(oldKey.sender, oldKey.nonce)
+	}
+
+	if removedElem == nil {
+		return nil, mempool.ErrTxNotFound
+	}
+
+	return removedElem.Value.(sdk.Tx), nil
+}
+
+func (mp *PriorityNonceMempool) doTxReplace(ctx context.Context, newMate, oldMate txMeta, oldTx, newTx sdk.Tx) error {
+	if mp.txReplacement != nil && !mp.txReplacement(oldMate.priority, newMate.priority, oldTx, newTx) {
+		return fmt.Errorf(
+			"tx doesn't fit the replacement rule, oldPriority: %v, newPriority: %v, oldTx: %v, newTx: %v",
+			oldMate.priority,
+			newMate.priority,
+			oldTx,
+			newTx,
+		)
+	}
+
+	e := mp.priorityIndex.Remove(txMeta{
+		nonce:    newMate.nonce,
+		sender:   newMate.sender,
+		priority: oldMate.priority,
+		weight:   oldMate.weight,
+	})
+	replacedTx := e.Value.(sdk.Tx)
+	mp.priorityCounts[oldMate.priority]--
+
+	mp.doInsert(newMate, newTx, false)
+
+	if mp.txReplacedCallback != nil && replacedTx != nil {
+		sdkContext := sdk.UnwrapSDKContext(ctx)
+		sdkContext.Logger().Debug("txn update", "txn", fmt.Sprintf("%d@%s", newMate.nonce, newMate.sender), "oldPriority", oldMate.priority, "newPriority", newMate.priority)
+		mp.txReplacedCallback(ctx,
+			&TxInfo{Sender: newMate.sender, Nonce: newMate.nonce, Tx: replacedTx},
+			&TxInfo{Sender: newMate.sender, Nonce: newMate.nonce, Tx: newTx},
+		)
+	}
 
 	return nil
 }
@@ -332,7 +461,24 @@ func (i *PriorityNonceIterator) Tx() sdk.Tx {
 //
 // NOTE: It is not safe to use this iterator while removing transactions from
 // the underlying mempool.
-func (mp *PriorityNonceMempool) Select(_ context.Context, _ [][]byte) mempool.Iterator {
+func (mp *PriorityNonceMempool) Select(ctx context.Context, txs [][]byte) mempool.Iterator {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	return mp.doSelect(ctx, txs)
+}
+
+func (mp *PriorityNonceMempool) SelectBy(ctx context.Context, txs [][]byte, callback func(sdk.Tx) bool) {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	iter := mp.doSelect(ctx, txs)
+	for iter != nil && callback(iter.Tx()) {
+		iter = iter.Next()
+	}
+}
+
+func (mp *PriorityNonceMempool) doSelect(_ context.Context, _ [][]byte) mempool.Iterator {
 	if mp.priorityIndex.Len() == 0 {
 		return nil
 	}
@@ -345,6 +491,16 @@ func (mp *PriorityNonceMempool) Select(_ context.Context, _ [][]byte) mempool.It
 	}
 
 	return iterator.iteratePriority()
+}
+
+func (mp *PriorityNonceMempool) GetSenderUncommittedTxnCount(ctx context.Context, sender string) int {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	if _, exists := mp.counterBySender[sender]; exists {
+		return mp.counterBySender[sender]
+	}
+	return 0
 }
 
 type reorderKey struct {
@@ -401,51 +557,34 @@ func senderWeight(senderCursor *skiplist.Element) int64 {
 
 // CountTx returns the number of transactions in the mempool.
 func (mp *PriorityNonceMempool) CountTx() int {
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
 	return mp.priorityIndex.Len()
 }
 
 // Remove removes a transaction from the mempool in O(log n) time, returning an
 // error if unsuccessful.
 func (mp *PriorityNonceMempool) Remove(tx sdk.Tx) error {
-	sigs, err := tx.(signing.SigVerifiableTx).GetSignaturesV2()
+	mp.mtx.Lock()
+	defer mp.mtx.Unlock()
+
+	txInfo, err := extractTxInfo(tx)
 	if err != nil {
 		return err
 	}
-	var sender string
-	var nonce uint64
-	if len(sigs) == 0 {
-		msgs := tx.GetMsgs()
-		if len(msgs) != 1 {
-			return fmt.Errorf("attempted to remove a tx with no signatures")
-		}
-		msgEthTx, ok := msgs[0].(*evmtypes.MsgEthereumTx)
-		if !ok {
-			return fmt.Errorf("attempted to remove a tx with no signatures")
-		}
-		ethTx := msgEthTx.AsTransaction()
-		signer := gethtypes.NewEIP2930Signer(ethTx.ChainId())
-		ethSender, err := signer.Sender(ethTx)
-		if err != nil {
-			return fmt.Errorf("attempted to remove a tx with no signatures")
-		}
-		sender = sdk.AccAddress(ethSender.Bytes()).String()
-		nonce = ethTx.Nonce()
-	} else {
-		sig := sigs[0]
-		sender = sdk.AccAddress(sig.PubKey.Address()).String()
-		nonce = sig.Sequence
-	}
 
-	scoreKey := txMeta{nonce: nonce, sender: sender}
+	mp.decrSenderTxCnt(txInfo.Sender, txInfo.Nonce)
+
+	scoreKey := txMeta{nonce: txInfo.Nonce, sender: txInfo.Sender}
 	score, ok := mp.scores[scoreKey]
 	if !ok {
 		return mempool.ErrTxNotFound
 	}
-	tk := txMeta{nonce: nonce, priority: score.priority, sender: sender, weight: score.weight}
+	tk := txMeta{nonce: txInfo.Nonce, priority: score.priority, sender: txInfo.Sender, weight: score.weight}
 
-	senderTxs, ok := mp.senderIndices[sender]
+	senderTxs, ok := mp.senderIndices[txInfo.Sender]
 	if !ok {
-		return fmt.Errorf("sender %s not found", sender)
+		return fmt.Errorf("sender %s not found", txInfo.Sender)
 	}
 
 	mp.priorityIndex.Remove(tk)
@@ -454,6 +593,73 @@ func (mp *PriorityNonceMempool) Remove(tx sdk.Tx) error {
 	mp.priorityCounts[score.priority]--
 
 	return nil
+}
+
+func (mp *PriorityNonceMempool) getLowestPriority() int64 {
+	if mp.priorityIndex.Len() == 0 {
+		return 0
+	}
+
+	min := int64(math.MaxInt64)
+	for priority, count := range mp.priorityCounts {
+		if count > 0 {
+			if priority < min {
+				min = priority
+			}
+		}
+	}
+
+	return min
+}
+
+func (mp *PriorityNonceMempool) canInsert(sender string) bool {
+	mp.senderTxCntLock.RLock()
+	defer mp.senderTxCntLock.RUnlock()
+
+	if _, exists := mp.counterBySender[sender]; exists {
+		return mp.counterBySender[sender] < MAX_TXS_PRE_SENDER_IN_MEMPOOL
+	}
+
+	return true
+}
+
+func (mp *PriorityNonceMempool) incrSenderTxCnt(sender string, nonce uint64) error {
+	mp.senderTxCntLock.Lock()
+	defer mp.senderTxCntLock.Unlock()
+
+	existsKey := txMeta{nonce: nonce, sender: sender}
+	if _, exists := mp.txRecord[existsKey]; !exists {
+		mp.txRecord[existsKey] = struct{}{}
+
+		if _, exists := mp.counterBySender[sender]; !exists {
+			mp.counterBySender[sender] = 1
+		} else {
+			if mp.counterBySender[sender] < MAX_TXS_PRE_SENDER_IN_MEMPOOL {
+				mp.counterBySender[sender] += 1
+			} else {
+				return fmt.Errorf("tx sender has too many txs in mempool")
+			}
+		}
+	}
+	return nil
+}
+
+func (mp *PriorityNonceMempool) decrSenderTxCnt(sender string, nonce uint64) {
+	mp.senderTxCntLock.Lock()
+	defer mp.senderTxCntLock.Unlock()
+
+	existsKey := txMeta{nonce: nonce, sender: sender}
+	if _, exists := mp.txRecord[existsKey]; exists {
+		delete(mp.txRecord, existsKey)
+
+		if _, exists := mp.counterBySender[sender]; exists {
+			if mp.counterBySender[sender] > 1 {
+				mp.counterBySender[sender] -= 1
+			} else {
+				delete(mp.counterBySender, sender)
+			}
+		}
+	}
 }
 
 func IsEmpty(mempool mempool.Mempool) error {
@@ -485,4 +691,45 @@ func IsEmpty(mempool mempool.Mempool) error {
 	}
 
 	return nil
+}
+
+type TxInfo struct {
+	Sender string
+	Nonce  uint64
+	Tx     sdk.Tx
+}
+
+func extractTxInfo(tx sdk.Tx) (*TxInfo, error) {
+	var sender string
+	var nonce uint64
+
+	sigs, err := tx.(signing.SigVerifiableTx).GetSignaturesV2()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(sigs) == 0 {
+		msgs := tx.GetMsgs()
+		if len(msgs) != 1 {
+			return nil, fmt.Errorf("tx must have at least one signer")
+		}
+		msgEthTx, ok := msgs[0].(*evmtypes.MsgEthereumTx)
+		if !ok {
+			return nil, fmt.Errorf("tx must have at least one signer")
+		}
+		ethTx := msgEthTx.AsTransaction()
+		signer := gethtypes.NewEIP2930Signer(ethTx.ChainId())
+		ethSender, err := signer.Sender(ethTx)
+		if err != nil {
+			return nil, fmt.Errorf("tx must have at least one signer")
+		}
+		sender = sdk.AccAddress(ethSender.Bytes()).String()
+		nonce = ethTx.Nonce()
+	} else {
+		sig := sigs[0]
+		sender = sdk.AccAddress(sig.PubKey.Address()).String()
+		nonce = sig.Sequence
+	}
+
+	return &TxInfo{Sender: sender, Nonce: nonce, Tx: tx}, nil
 }
